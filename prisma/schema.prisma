@@ -1,0 +1,312 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  phone         String?   @unique
+  password      String
+  avatar        String?
+  role          String    @default("user") // user | admin | superadmin
+  isVerified    Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  kycStatus     String    @default("pending") // pending | verified | rejected
+  balance       Float     @default(0)
+  bonusBalance  Float     @default(0)
+  totalDeposited Float    @default(0)
+  totalWithdrawn Float    @default(0)
+  totalWon      Float     @default(0)
+  totalLost     Float     @default(0)
+  referralCode  String    @unique
+  referredBy    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  transactions    Transaction[]
+  trades          Trade[]
+  bets            Bet[]
+  contestEntries  ContestEntry[]
+  notifications   Notification[]
+  deposits        Deposit[]
+  withdrawals     Withdrawal[]
+
+  @@map("users")
+}
+
+model Match {
+  id             String   @id @default(cuid())
+  externalId     String?  @unique
+  team1          String
+  team2          String
+  team1Short     String
+  team2Short     String
+  team1Logo      String?
+  team2Logo      String?
+  venue          String
+  city           String
+  startTime      DateTime
+  status         String   @default("upcoming") // upcoming | live | completed | cancelled
+  matchType      String   @default("T20") // T20 | ODI | Test
+  series         String   @default("IPL 2025")
+  matchNumber    Int?
+
+  // Live Score
+  currentInnings Int      @default(0) // 1 or 2
+  team1Score     String?
+  team2Score     String?
+  team1Runs      Int?
+  team1Wickets   Int?
+  team1Overs     String?
+  team2Runs      Int?
+  team2Wickets   Int?
+  team2Overs     String?
+  currentBatsmen String?
+  currentBowler  String?
+  lastBall       String?
+  requiredRuns   Int?
+  requiredOvers  String?
+  tossWinner     String?
+  tossDecision   String?
+  result         String?
+  winnerTeam     String?
+
+  // Trading Odds
+  team1Odds      Float    @default(2.0)
+  team2Odds      Float    @default(2.0)
+  drawOdds       Float?
+
+  // Admin control
+  isLocked       Boolean  @default(false)
+  featuredMatch  Boolean  @default(false)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  trades         Trade[]
+  bets           Bet[]
+  contests       Contest[]
+  playerStats    PlayerStat[]
+
+  @@map("matches")
+}
+
+model Trade {
+  id          String   @id @default(cuid())
+  userId      String
+  matchId     String
+  tradeType   String   // buy_runs | sell_runs | buy_wickets | sell_wickets | over_under
+  prediction  String   // specific prediction like "team1_win", "over_150_runs", etc.
+  amount      Float
+  odds        Float
+  potentialWin Float
+  status      String   @default("active") // active | won | lost | cancelled | settled
+  result      String?
+  pnl         Float    @default(0)
+  settledAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id])
+  match       Match    @relation(fields: [matchId], references: [id])
+
+  @@map("trades")
+}
+
+model Bet {
+  id          String   @id @default(cuid())
+  userId      String
+  matchId     String
+  betCategory String   // match_winner | top_batsman | top_bowler | total_runs | total_wickets | first_wicket | sixers | fours
+  betType     String   // specific bet option
+  betValue    String   // the predicted value
+  amount      Float
+  odds        Float
+  potentialWin Float
+  status      String   @default("pending") // pending | active | won | lost | cancelled | refunded
+  result      String?
+  pnl         Float    @default(0)
+  settledAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id])
+  match       Match    @relation(fields: [matchId], references: [id])
+
+  @@map("bets")
+}
+
+model Contest {
+  id              String   @id @default(cuid())
+  matchId         String
+  name            String
+  description     String?
+  contestType     String   // mega | small | head2head | practice
+  entryFee        Float    @default(0)
+  maxParticipants Int
+  currentParticipants Int  @default(0)
+  totalPrizePool  Float
+  prizeBreakdown  String   // JSON string of prize structure
+  status          String   @default("upcoming") // upcoming | open | locked | live | completed | cancelled
+  startTime       DateTime
+  endTime         DateTime?
+  isGuaranteed    Boolean  @default(false)
+  isFeatured      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  match           Match    @relation(fields: [matchId], references: [id])
+  entries         ContestEntry[]
+
+  @@map("contests")
+}
+
+model ContestEntry {
+  id          String   @id @default(cuid())
+  contestId   String
+  userId      String
+  teamName    String
+  players     String   // JSON array of selected player IDs
+  captain     String
+  viceCaptain String
+  score       Float    @default(0)
+  rank        Int?
+  prize       Float    @default(0)
+  status      String   @default("active") // active | won | lost
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contest     Contest  @relation(fields: [contestId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@unique([contestId, userId])
+  @@map("contest_entries")
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // deposit | withdrawal | trade_win | trade_loss | bet_win | bet_loss | contest_win | contest_entry | bonus | refund
+  amount      Float
+  balance     Float
+  description String
+  referenceId String?
+  status      String   @default("completed") // pending | completed | failed | reversed
+  metadata    String?  // JSON
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("transactions")
+}
+
+model Deposit {
+  id              String   @id @default(cuid())
+  userId          String
+  amount          Float
+  method          String   // upi | netbanking | card | wallet
+  gateway         String   @default("razorpay")
+  gatewayOrderId  String?
+  gatewayPaymentId String?
+  status          String   @default("pending") // pending | completed | failed
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id])
+
+  @@map("deposits")
+}
+
+model Withdrawal {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Float
+  method      String   // bank | upi | paytm
+  accountDetails String // JSON with bank/upi details
+  status      String   @default("pending") // pending | processing | completed | rejected
+  rejectionReason String?
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("withdrawals")
+}
+
+model Player {
+  id          String   @id @default(cuid())
+  externalId  String?  @unique
+  name        String
+  fullName    String?
+  team        String
+  role        String   // batsman | bowler | allrounder | wicketkeeper
+  nationality String   @default("Indian")
+  battingStyle String?
+  bowlingStyle String?
+  image       String?
+  creditValue Float    @default(8.0) // fantasy points value
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stats       PlayerStat[]
+
+  @@map("players")
+}
+
+model PlayerStat {
+  id          String   @id @default(cuid())
+  playerId    String
+  matchId     String
+  runs        Int?
+  balls       Int?
+  fours       Int?
+  sixes       Int?
+  strikeRate  Float?
+  wickets     Int?
+  economy     Float?
+  oversBowled String?
+  catches     Int?
+  stumpings   Int?
+  fantasyPoints Float  @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  player      Player   @relation(fields: [playerId], references: [id])
+  match       Match    @relation(fields: [matchId], references: [id])
+
+  @@unique([playerId, matchId])
+  @@map("player_stats")
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  message     String
+  type        String   // info | success | warning | error
+  isRead      Boolean  @default(false)
+  link        String?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model AppSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("app_settings")
+}
