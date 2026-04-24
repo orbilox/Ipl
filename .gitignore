@@ -36,7 +36,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# prisma
+# prisma - only exclude local SQLite files, keep migrations
 *.db
 *.db-journal
-prisma/migrations/
