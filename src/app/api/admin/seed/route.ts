@@ -63,40 +63,44 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // ── IPL 2025 Actual Schedule ───────────────────────────────────────────
+    // ── IPL 2026 Actual Schedule ───────────────────────────────────────────
     // Team short names MUST match Cricbuzz exactly for live score auto-update
     const now = new Date()
     const today730pm = new Date()
     today730pm.setHours(19, 30, 0, 0)
+    const tomorrow330pm = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+    tomorrow330pm.setHours(15, 30, 0, 0)
     const tomorrow730pm = new Date(now.getTime() + 24 * 60 * 60 * 1000)
     tomorrow730pm.setHours(19, 30, 0, 0)
     const dayAfter730pm = new Date(now.getTime() + 48 * 60 * 60 * 1000)
     dayAfter730pm.setHours(19, 30, 0, 0)
+    const day3 = new Date(now.getTime() + 72 * 60 * 60 * 1000)
+    day3.setHours(19, 30, 0, 0)
 
     const matches = [
-      // Match 35 — DC vs PBKS (completed earlier today per Google)
+      // Completed match earlier today
       {
         team1: 'Delhi Capitals', team1Short: 'DC',
         team2: 'Punjab Kings', team2Short: 'PBKS',
         venue: 'Arun Jaitley Stadium', city: 'Delhi',
-        series: 'IPL 2025', matchNumber: 35,
+        series: 'IPL 2026', matchNumber: 35,
         startTime: new Date(now.getTime() - 4 * 60 * 60 * 1000),
         status: 'completed' as const,
-        team1Runs: 152, team1Wickets: 6, team1Overs: '20.0',
-        team2Runs: 148, team2Wickets: 9, team2Overs: '20.0',
-        team1Score: '152/6', team2Score: '148/9',
+        team1Runs: 187, team1Wickets: 5, team1Overs: '20.0',
+        team2Runs: 183, team2Wickets: 8, team2Overs: '20.0',
+        team1Score: '187/5', team2Score: '183/8',
         currentInnings: 2,
         winnerTeam: 'DC',
         result: 'Delhi Capitals won by 4 runs',
         team1Odds: 1.0, team2Odds: 8.0,
         featuredMatch: false,
       },
-      // Match 36 — RR vs SRH (today 7:30 PM — set live so Cricbuzz picks it up)
+      // LIVE match tonight — Cricbuzz will auto-update this
       {
         team1: 'Rajasthan Royals', team1Short: 'RR',
         team2: 'Sunrisers Hyderabad', team2Short: 'SRH',
         venue: 'Sawai Mansingh Stadium', city: 'Jaipur',
-        series: 'IPL 2025', matchNumber: 36,
+        series: 'IPL 2026', matchNumber: 36,
         startTime: today730pm,
         status: 'live' as const,
         currentInnings: 1,
@@ -105,37 +109,45 @@ export async function GET(req: NextRequest) {
         team1Odds: 1.9, team2Odds: 2.0,
         featuredMatch: true,
       },
-      // Match 37 — MI vs KKR (tomorrow)
+      // Tomorrow double header
       {
         team1: 'Mumbai Indians', team1Short: 'MI',
         team2: 'Kolkata Knight Riders', team2Short: 'KKR',
         venue: 'Wankhede Stadium', city: 'Mumbai',
-        series: 'IPL 2025', matchNumber: 37,
-        startTime: tomorrow730pm,
+        series: 'IPL 2026', matchNumber: 37,
+        startTime: tomorrow330pm,
         status: 'upcoming' as const,
         team1Odds: 1.85, team2Odds: 2.1,
         featuredMatch: false,
       },
-      // Match 38 — CSK vs RCB (day after)
       {
         team1: 'Chennai Super Kings', team1Short: 'CSK',
         team2: 'Royal Challengers Bengaluru', team2Short: 'RCB',
         venue: 'MA Chidambaram Stadium', city: 'Chennai',
-        series: 'IPL 2025', matchNumber: 38,
-        startTime: dayAfter730pm,
+        series: 'IPL 2026', matchNumber: 38,
+        startTime: tomorrow730pm,
         status: 'upcoming' as const,
         team1Odds: 1.75, team2Odds: 2.2,
         featuredMatch: false,
       },
-      // Match 39 — GT vs LSG
       {
         team1: 'Gujarat Titans', team1Short: 'GT',
         team2: 'Lucknow Super Giants', team2Short: 'LSG',
         venue: 'Narendra Modi Stadium', city: 'Ahmedabad',
-        series: 'IPL 2025', matchNumber: 39,
-        startTime: new Date(now.getTime() + 72 * 60 * 60 * 1000),
+        series: 'IPL 2026', matchNumber: 39,
+        startTime: dayAfter730pm,
         status: 'upcoming' as const,
         team1Odds: 1.95, team2Odds: 1.95,
+        featuredMatch: false,
+      },
+      {
+        team1: 'Royal Challengers Bengaluru', team1Short: 'RCB',
+        team2: 'Mumbai Indians', team2Short: 'MI',
+        venue: 'M. Chinnaswamy Stadium', city: 'Bengaluru',
+        series: 'IPL 2026', matchNumber: 40,
+        startTime: day3,
+        status: 'upcoming' as const,
+        team1Odds: 2.0, team2Odds: 1.9,
         featuredMatch: false,
       },
     ]
@@ -145,7 +157,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
-      message: 'Database seeded successfully with IPL 2025 matches!',
+      message: 'Database seeded successfully with IPL 2026 matches!',
       seeded: {
         users: demoUsers.length + 1,
         matches: matches.length,
@@ -155,7 +167,7 @@ export async function GET(req: NextRequest) {
         admin: 'admin@ipltrading.com / Admin@123456',
         user: 'rahul@demo.com / Demo@12345',
       },
-      liveMatch: 'RR vs SRH — Cricbuzz will auto-update scores every minute',
+      liveMatch: 'RR vs SRH — IPL 2026 — Cricbuzz will auto-update scores every minute',
     })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
