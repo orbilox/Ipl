@@ -2,7 +2,19 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "installCommand": "npm install",
+  "crons": [
+    {
+      "path": "/api/cron/live-scores",
+      "schedule": "* * * * *"
+    }
+  ],
   "functions": {
+    "src/app/api/live-stream/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/live-scores/route.ts": {
+      "maxDuration": 30
+    },
     "src/app/api/**": {
       "maxDuration": 30
     }

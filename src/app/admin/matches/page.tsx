@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { Loader2, Plus, RefreshCw, Lock, Unlock, Edit3, Check } from 'lucide-react'
-import { cn, formatCurrency, formatDateTime, getStatusColor } from '@/lib/utils'
+import { Loader2, RefreshCw, Lock, Unlock, Edit3, Check, Play, Square, Zap } from 'lucide-react'
+import { cn, formatDateTime, getStatusColor } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 export default function AdminMatchesPage() {
   const [editingMatch, setEditingMatch] = useState<any>(null)
   const [scoreUpdate, setScoreUpdate] = useState<any>({})
+  const [simLog, setSimLog] = useState<Record<string, string[]>>({})
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['admin-matches'],
@@ -28,6 +29,27 @@ export default function AdminMatchesPage() {
       setEditingMatch(null)
       refetch()
     }
+  })
+
+  const simulateMutation = useMutation({
+    mutationFn: (payload: any) => fetch('/api/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).then(r => r.json()),
+    onSuccess: (data, variables) => {
+      if (data.error) { toast.error(data.error); return }
+      if (data.message) toast.success(data.message)
+      if (data.events) {
+        setSimLog(prev => ({
+          ...prev,
+          [variables.matchId]: data.events.slice(-8),
+        }))
+        toast.success(`Simulated ${data.events.filter((e: string) => !e.includes('---')).length} ball(s)`)
+      }
+      refetch()
+    },
+    onError: () => toast.error('Simulation failed'),
   })
 
   function handleUpdate(matchId: string, extra: any = {}) {
@@ -212,7 +234,55 @@ export default function AdminMatchesPage() {
                 <div className="text-center text-xs text-gray-400 mt-2">{match.result}</div>
               )}
 
-              <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+              {/* Simulate Controls */}
+              <div className="mt-3 pt-3 border-t border-gray-800">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {match.status !== 'live' && match.status !== 'completed' && (
+                    <button
+                      onClick={() => simulateMutation.mutate({ matchId: match.id, action: 'set_live' })}
+                      disabled={simulateMutation.isPending}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-400 text-xs rounded-lg border border-green-500/20 transition-all"
+                    >
+                      <Play className="w-3 h-3" /> Set Live
+                    </button>
+                  )}
+                  {match.status === 'live' && (
+                    <>
+                      <button
+                        onClick={() => simulateMutation.mutate({ matchId: match.id, action: 'ball', balls: 1 })}
+                        disabled={simulateMutation.isPending}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs rounded-lg border border-orange-500/20 transition-all"
+                      >
+                        {simulateMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />} +1 Ball
+                      </button>
+                      <button
+                        onClick={() => simulateMutation.mutate({ matchId: match.id, action: 'ball', balls: 6 })}
+                        disabled={simulateMutation.isPending}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs rounded-lg border border-orange-500/20 transition-all"
+                      >
+                        <Zap className="w-3 h-3" /> +1 Over
+                      </button>
+                      <button
+                        onClick={() => simulateMutation.mutate({ matchId: match.id, action: 'stop' })}
+                        disabled={simulateMutation.isPending}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs rounded-lg border border-red-500/20 transition-all"
+                      >
+                        <Square className="w-3 h-3" /> Stop
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {simLog[match.id] && simLog[match.id].length > 0 && (
+                  <div className="mt-2 bg-gray-900/60 rounded-lg p-2 max-h-24 overflow-y-auto">
+                    {simLog[match.id].map((line, i) => (
+                      <div key={i} className="text-xs text-gray-400 font-mono">{line}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
                 <span>📍 {match.city} · {formatDateTime(match.startTime)}</span>
                 <span>{match._count?.trades} trades · {match._count?.bets} bets</span>
               </div>

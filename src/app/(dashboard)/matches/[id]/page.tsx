@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 import { useSearchParams, useParams } from 'next/navigation'
@@ -9,6 +9,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { cn, formatCurrency, getStatusColor } from '@/lib/utils'
 import TopBar from '@/components/layout/TopBar'
+import LiveScoreWidget from '@/components/match/LiveScoreWidget'
 
 const TRADE_OPTIONS = [
   { id: 'team1_win', label: 'Team 1 Wins', type: 'match_winner', description: 'Team 1 wins the match' },
@@ -72,6 +73,11 @@ export default function MatchDetailPage() {
   const [tradeAmount, setTradeAmount] = useState('')
   const [betAmount, setBetAmount] = useState('')
   const [selectedBetCategory, setSelectedBetCategory] = useState('match_winner')
+  const [liveOdds, setLiveOdds] = useState<{ team1: number; team2: number } | null>(null)
+
+  const handleOddsChange = useCallback((team1Odds: number, team2Odds: number) => {
+    setLiveOdds({ team1: team1Odds, team2: team2Odds })
+  }, [])
 
   const { data, isLoading } = useQuery({
     queryKey: ['match', params.id],
@@ -156,7 +162,8 @@ export default function MatchDetailPage() {
       tradeType: selectedTrade.type,
       prediction: selectedTrade.id,
       amount,
-      odds: selectedTrade.id === 'team1_win' ? match.team1Odds : match.team2Odds,
+      odds: selectedTrade.id === 'team1_win' ? (liveOdds?.team1 ?? match.team1Odds) :
+            selectedTrade.id === 'team2_win' ? (liveOdds?.team2 ?? match.team2Odds) : 1.9,
     })
   }
 
@@ -186,9 +193,9 @@ export default function MatchDetailPage() {
           Back to Matches
         </Link>
 
-        {/* Match Header */}
-        <div className="card p-5 mb-6">
-          <div className="flex items-center justify-between mb-4">
+        {/* Match Header / Live Score */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
             <span className={cn('badge', getStatusColor(match.status))}>
               {match.status === 'live' ? (
                 <><div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }} />LIVE</>
@@ -197,48 +204,62 @@ export default function MatchDetailPage() {
             <span className="text-gray-400 text-sm">{match.series} · Match {match.matchNumber}</span>
           </div>
 
-          <div className="grid grid-cols-3 items-center text-center">
-            <div>
-              <div className="w-16 h-16 rounded-2xl bg-gray-800 flex items-center justify-center font-bold text-white text-lg mx-auto mb-2">
-                {match.team1Short}
-              </div>
-              <div className="font-bold text-white">{match.team1Short}</div>
-              <div className="text-gray-300 text-sm font-medium">{match.team1Score || '—'}</div>
-              <div className="text-orange-400 text-sm font-bold mt-1">{match.team1Odds}x</div>
-            </div>
-
-            <div className="text-center">
-              <div className="text-gray-500 text-lg font-medium">vs</div>
-              {match.status === 'live' && (
-                <div className="mt-2">
-                  {match.requiredRuns && (
-                    <div className="text-xs text-orange-400">
-                      {match.team2Short} need {match.requiredRuns} runs
-                    </div>
-                  )}
-                  {match.lastBall && (
-                    <div className="text-xs text-gray-400 mt-1">Last: {match.lastBall}</div>
+          {match.status === 'live' ? (
+            <LiveScoreWidget
+              matchId={match.id}
+              initialScore={{
+                team1Short: match.team1Short,
+                team2Short: match.team2Short,
+                team1Score: match.team1Score,
+                team2Score: match.team2Score,
+                team1Runs: match.team1Runs,
+                team1Wickets: match.team1Wickets,
+                team1Overs: match.team1Overs,
+                team2Runs: match.team2Runs,
+                team2Wickets: match.team2Wickets,
+                team2Overs: match.team2Overs,
+                currentInnings: match.currentInnings || 1,
+                lastBall: match.lastBall,
+                requiredRuns: match.requiredRuns,
+                requiredOvers: match.requiredOvers,
+                result: match.result,
+                status: match.status,
+                team1Odds: match.team1Odds,
+                team2Odds: match.team2Odds,
+              }}
+              onOddsChange={handleOddsChange}
+            />
+          ) : (
+            <div className="card p-5">
+              <div className="grid grid-cols-3 items-center text-center">
+                <div>
+                  <div className="w-16 h-16 rounded-2xl bg-gray-800 flex items-center justify-center font-bold text-white text-lg mx-auto mb-2">
+                    {match.team1Short}
+                  </div>
+                  <div className="font-bold text-white">{match.team1Short}</div>
+                  <div className="text-gray-300 text-sm font-medium">{match.team1Score || '—'}</div>
+                  <div className="text-orange-400 text-sm font-bold mt-1">{liveOdds?.team1 ?? match.team1Odds}x</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-gray-500 text-lg font-medium">vs</div>
+                  {match.result && (
+                    <div className="text-xs text-green-400 mt-2">{match.result}</div>
                   )}
                 </div>
-              )}
-              {match.result && (
-                <div className="text-xs text-green-400 mt-2">{match.result}</div>
-              )}
-            </div>
-
-            <div>
-              <div className="w-16 h-16 rounded-2xl bg-gray-800 flex items-center justify-center font-bold text-white text-lg mx-auto mb-2">
-                {match.team2Short}
+                <div>
+                  <div className="w-16 h-16 rounded-2xl bg-gray-800 flex items-center justify-center font-bold text-white text-lg mx-auto mb-2">
+                    {match.team2Short}
+                  </div>
+                  <div className="font-bold text-white">{match.team2Short}</div>
+                  <div className="text-gray-300 text-sm font-medium">{match.team2Score || '—'}</div>
+                  <div className="text-blue-400 text-sm font-bold mt-1">{liveOdds?.team2 ?? match.team2Odds}x</div>
+                </div>
               </div>
-              <div className="font-bold text-white">{match.team2Short}</div>
-              <div className="text-gray-300 text-sm font-medium">{match.team2Score || '—'}</div>
-              <div className="text-blue-400 text-sm font-bold mt-1">{match.team2Odds}x</div>
+              <div className="mt-4 text-center text-xs text-gray-500">
+                📍 {match.venue}, {match.city}
+              </div>
             </div>
-          </div>
-
-          <div className="mt-4 text-center text-xs text-gray-500">
-            📍 {match.venue}, {match.city}
-          </div>
+          )}
         </div>
 
         {/* Tabs */}
@@ -271,8 +292,8 @@ export default function MatchDetailPage() {
               <h3 className="font-semibold text-white mb-4">Select Your Prediction</h3>
               <div className="space-y-3">
                 {TRADE_OPTIONS.map(option => {
-                  const odds = option.id === 'team1_win' ? match.team1Odds :
-                               option.id === 'team2_win' ? match.team2Odds : 1.9
+                  const odds = option.id === 'team1_win' ? (liveOdds?.team1 ?? match.team1Odds) :
+                               option.id === 'team2_win' ? (liveOdds?.team2 ?? match.team2Odds) : 1.9
                   const displayOpts = {
                     ...option,
                     label: option.id === 'team1_win' ? `${match.team1Short} Wins` :
@@ -309,8 +330,8 @@ export default function MatchDetailPage() {
                   <div className="mb-4 p-3 bg-orange-500/10 rounded-xl border border-orange-500/20">
                     <div className="text-white font-medium text-sm">{selectedTrade.label}</div>
                     <div className="text-orange-400 text-xs mt-1">Odds: {
-                      selectedTrade.id === 'team1_win' ? match.team1Odds :
-                      selectedTrade.id === 'team2_win' ? match.team2Odds : '1.90'
+                      selectedTrade.id === 'team1_win' ? (liveOdds?.team1 ?? match.team1Odds) :
+                      selectedTrade.id === 'team2_win' ? (liveOdds?.team2 ?? match.team2Odds) : '1.90'
                     }x</div>
                   </div>
                 ) : (
@@ -347,8 +368,8 @@ export default function MatchDetailPage() {
                       <span className="text-gray-400">Potential Win</span>
                       <span className="text-green-400 font-bold">
                         {formatCurrency(parseFloat(tradeAmount) * (
-                          selectedTrade.id === 'team1_win' ? match.team1Odds :
-                          selectedTrade.id === 'team2_win' ? match.team2Odds : 1.9
+                          selectedTrade.id === 'team1_win' ? (liveOdds?.team1 ?? match.team1Odds) :
+                          selectedTrade.id === 'team2_win' ? (liveOdds?.team2 ?? match.team2Odds) : 1.9
                         ))}
                       </span>
                     </div>
@@ -356,8 +377,8 @@ export default function MatchDetailPage() {
                       <span className="text-gray-400">Profit</span>
                       <span className="text-green-400">
                         +{formatCurrency(parseFloat(tradeAmount) * (
-                          selectedTrade.id === 'team1_win' ? match.team1Odds - 1 :
-                          selectedTrade.id === 'team2_win' ? match.team2Odds - 1 : 0.9
+                          selectedTrade.id === 'team1_win' ? (liveOdds?.team1 ?? match.team1Odds) - 1 :
+                          selectedTrade.id === 'team2_win' ? (liveOdds?.team2 ?? match.team2Odds) - 1 : 0.9
                         ))}
                       </span>
                     </div>
