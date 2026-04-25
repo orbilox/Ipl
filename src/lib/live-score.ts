@@ -1,10 +1,19 @@
 /**
- * Live score engine — fetches from CricAPI, falls back to simulator.
- * Called by the Vercel cron job every 60 seconds for live matches.
+ * Live score engine.
+ * Priority: Cricbuzz internal API (free, no key) → CricAPI (key required) → Simulator fallback
  */
 
 const API_KEY = process.env.CRICKET_API_KEY || ''
 const API_BASE = process.env.CRICKET_API_BASE || 'https://api.cricapi.com/v1'
+
+// Cricbuzz internal API — no key, no signup required
+const CB_BASE = 'https://www.cricbuzz.com/api'
+const CB_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Referer': 'https://www.cricbuzz.com/',
+  'Origin': 'https://www.cricbuzz.com',
+}
 
 export interface BallEvent {
   runs: number
@@ -60,6 +69,122 @@ export async function fetchCricAPIScorecard(externalId: string): Promise<any> {
   const json = await res.json()
   if (json.status !== 'success') throw new Error(json.info || 'Scorecard failed')
   return json.data
+}
+
+// ── Cricbuzz internal API (free, no key needed) ────────────────────────────
+
+export async function fetchCricbuzzLiveMatches(): Promise<any[]> {
+  const res = await fetch(`${CB_BASE}/cricket-match/live-matches`, {
+    headers: CB_HEADERS,
+    signal: AbortSignal.timeout(8000),
+    cache: 'no-store',
+  })
+  if (!res.ok) throw new Error(`Cricbuzz ${res.status}`)
+  const json = await res.json()
+
+  // Flatten nested typeMatches → seriesMatches → matches
+  const matches: any[] = []
+  for (const type of json.typeMatches || []) {
+    for (const series of type.seriesMatches || []) {
+      const wrapper = series.seriesAdWrapper || series
+      for (const match of wrapper.matches || []) {
+        if (match.matchInfo) matches.push(match)
+      }
+    }
+  }
+  return matches
+}
+
+export async function fetchCricbuzzScorecard(cbMatchId: number): Promise<any> {
+  const res = await fetch(`${CB_BASE}/cricket-scorecard/${cbMatchId}`, {
+    headers: CB_HEADERS,
+    signal: AbortSignal.timeout(8000),
+    cache: 'no-store',
+  })
+  if (!res.ok) throw new Error(`Cricbuzz scorecard ${res.status}`)
+  return res.json()
+}
+
+export function parseCricbuzzMatch(
+  raw: any,
+  dbMatchId: string,
+  dbTeam1Short: string,
+  dbTeam2Short: string
+): Partial<LiveScore> {
+  const info = raw.matchInfo || {}
+  const scoreData = raw.matchScore || {}
+
+  const state: string = info.state || ''
+  const status = state === 'In Progress' ? 'live'
+    : (state === 'Complete' || state === 'Stumps') ? 'completed'
+    : 'upcoming'
+
+  // Cricbuzz team1/team2 may be in different order than our DB — align by short name
+  const cbTeam1Short: string = info.team1?.teamSName || ''
+  const isSwapped = cbTeam1Short !== dbTeam1Short
+
+  const rawT1 = isSwapped ? scoreData.team2Score : scoreData.team1Score
+  const rawT2 = isSwapped ? scoreData.team1Score : scoreData.team2Score
+
+  // Prefer inngs2 if it exists (team batting second has inngs1 under team2Score)
+  const t1 = rawT1?.inngs1 || rawT1?.inngs2 || {}
+  const t2 = rawT2?.inngs1 || rawT2?.inngs2 || {}
+
+  const team1Runs = t1.runs ?? 0
+  const team1Wickets = t1.wickets ?? 0
+  const team1Overs = t1.overs !== undefined ? String(t1.overs) : '0.0'
+  const team2Runs = t2.runs ?? 0
+  const team2Wickets = t2.wickets ?? 0
+  const team2Overs = t2.overs !== undefined ? String(t2.overs) : '0.0'
+
+  const currentInnings = rawT2?.inngs1 ? 2 : 1
+
+  let requiredRuns: number | null = null
+  let requiredOvers: string | null = null
+  if (currentInnings === 2 && team1Runs > 0) {
+    requiredRuns = Math.max(0, team1Runs + 1 - team2Runs)
+    requiredOvers = Math.max(0, 20 - parseFloat(team2Overs)).toFixed(1)
+  }
+
+  const { team1Odds, team2Odds } = computeOdds(
+    team1Runs, team1Wickets, team2Runs, team2Wickets, currentInnings
+  )
+
+  // Extract winner from status string e.g. "DC won by 5 wickets"
+  const winnerShort = extractWinnerShort(info.status, dbTeam1Short, dbTeam2Short)
+
+  return {
+    matchId: dbMatchId,
+    externalId: String(info.matchId || ''),
+    status,
+    team1Runs,
+    team1Wickets,
+    team1Overs,
+    team2Runs,
+    team2Wickets,
+    team2Overs,
+    currentInnings,
+    lastBall: info.status || '',
+    currentBatsmen: '',
+    currentBowler: '',
+    requiredRuns,
+    requiredOvers,
+    result: status === 'completed' ? (info.status || null) : null,
+    winnerTeam: winnerShort,
+    team1Odds,
+    team2Odds,
+  }
+}
+
+function extractWinnerShort(
+  statusText: string | null,
+  team1Short: string,
+  team2Short: string
+): string | null {
+  if (!statusText) return null
+  if (statusText.toLowerCase().startsWith(team1Short.toLowerCase())) return team1Short
+  if (statusText.toLowerCase().startsWith(team2Short.toLowerCase())) return team2Short
+  return null
 }
 
 // ── Parse CricAPI response into our LiveScore shape ────────────────────────
