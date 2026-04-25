@@ -1,22 +1,13 @@
 /**
  * One-time database seed endpoint.
- * GET /api/admin/seed?secret=CRON_SECRET
- * Run this once after deploying to populate demo data.
+ * GET /api/admin/seed
+ * Run once after deploying to populate demo data.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 
-function isAuthorized(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get('secret')
-  return secret === process.env.CRON_SECRET
-}
-
 export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: 'Unauthorized — add ?secret=YOUR_CRON_SECRET' }, { status: 401 })
-  }
-
   try {
     // Check if already seeded
     const existingAdmin = await prisma.user.findUnique({ where: { email: 'admin@ipltrading.com' } })
