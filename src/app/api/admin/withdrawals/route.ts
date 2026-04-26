@@ -18,16 +18,17 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get('status') || 'pending'
   const page = parseInt(searchParams.get('page') || '1')
   const limit = 20
+  const whereClause = status === 'all' ? {} : { status }
 
   const [withdrawals, total] = await Promise.all([
     prisma.withdrawal.findMany({
-      where: { status },
+      where: whereClause,
       include: { user: { select: { id: true, name: true, email: true, phone: true } } },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
     }),
-    prisma.withdrawal.count({ where: { status } })
+    prisma.withdrawal.count({ where: whereClause })
   ])
 
   return NextResponse.json({ withdrawals, total, pages: Math.ceil(total / limit) })
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
 const processWithdrawalSchema = z.object({
   withdrawalId: z.string(),
   action: z.enum(['approve', 'reject']),
-  rejectionReason: z.string().optional(),
+  adminNote: z.string().optional(),
 })
 
 export async function PATCH(req: NextRequest) {
@@ -47,7 +48,7 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { withdrawalId, action, rejectionReason } = processWithdrawalSchema.parse(body)
+    const { withdrawalId, action, adminNote } = processWithdrawalSchema.parse(body)
 
     const withdrawal = await prisma.withdrawal.findUnique({
       where: { id: withdrawalId },
@@ -63,7 +64,7 @@ export async function PATCH(req: NextRequest) {
       await prisma.$transaction([
         prisma.withdrawal.update({
           where: { id: withdrawalId },
-          data: { status: 'completed', processedAt: new Date() }
+          data: { status: 'approved', approvedAt: new Date(), adminNote: adminNote || null }
         }),
         prisma.transaction.updateMany({
           where: {
@@ -77,17 +78,16 @@ export async function PATCH(req: NextRequest) {
           data: {
             userId: withdrawal.userId,
             title: 'Withdrawal Approved',
-            message: `Your withdrawal of ₹${withdrawal.amount} has been processed`,
+            message: `Your withdrawal of ₹${withdrawal.amount} has been processed successfully`,
             type: 'success',
           }
         })
       ])
     } else {
-      // Refund balance
       await prisma.$transaction([
         prisma.withdrawal.update({
           where: { id: withdrawalId },
-          data: { status: 'rejected', rejectionReason: rejectionReason || 'Rejected by admin' }
+          data: { status: 'rejected', adminNote: adminNote || 'Rejected by admin' }
         }),
         prisma.user.update({
           where: { id: withdrawal.userId },
@@ -102,7 +102,7 @@ export async function PATCH(req: NextRequest) {
             type: 'refund',
             amount: withdrawal.amount,
             balance: withdrawal.user.balance + withdrawal.amount,
-            description: `Withdrawal rejected: ${rejectionReason || 'Rejected by admin'}`,
+            description: `Withdrawal rejected: ${adminNote || 'Rejected by admin'}`,
             status: 'completed',
           }
         }),
@@ -110,7 +110,7 @@ export async function PATCH(req: NextRequest) {
           data: {
             userId: withdrawal.userId,
             title: 'Withdrawal Rejected',
-            message: `Your withdrawal of ₹${withdrawal.amount} was rejected. Amount refunded.`,
+            message: `Your withdrawal of ₹${withdrawal.amount} was rejected. Amount has been refunded to your wallet.`,
             type: 'error',
           }
         })
