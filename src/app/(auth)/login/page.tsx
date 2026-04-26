@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Trophy, Mail, Lock, Loader2 } from 'lucide-react'
@@ -31,8 +31,15 @@ export default function LoginPage() {
       if (res?.error) {
         toast.error('Invalid email or password')
       } else {
-        toast.success('Welcome back! 🏏')
-        router.push('/dashboard')
+        const session = await getSession()
+        const role = session?.user?.role
+        if (role === 'admin' || role === 'superadmin') {
+          toast.success('Welcome, Admin! 🔐')
+          router.push('/admin')
+        } else {
+          toast.success('Welcome back! 🏏')
+          router.push('/dashboard')
+        }
         router.refresh()
       }
     } catch {
@@ -130,7 +137,7 @@ export default function LoginPage() {
         <p className="text-center text-gray-400 text-sm mt-6">
           New to IPL Trading?{' '}
           <Link href="/register" className="text-orange-400 font-medium hover:text-orange-300">
-            Create Account & Get ₹50 Free
+            Create Account & Get 🪙 50 Tokens Free
           </Link>
         </p>
       </div>
