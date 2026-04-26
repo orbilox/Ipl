@@ -28,13 +28,14 @@ export default function AdminTopBar({ pendingDeposits, pendingWithdrawals, admin
   const pageName = breadcrumbMap[pathname] || 'Admin'
 
   return (
-    <header className="h-14 bg-[#070c18] border-b border-white/[0.06] flex items-center justify-between px-6 shrink-0">
+    <header className="h-14 border-b border-purple-900/40 flex items-center justify-between px-6 shrink-0"
+      style={{ background: 'linear-gradient(90deg, #120024 0%, #0a0015 100%)' }}>
       {/* Left: breadcrumb */}
       <div className="flex items-center gap-2 text-sm">
-        <Shield className="w-3.5 h-3.5 text-purple-500" />
-        <span className="text-gray-600">Admin</span>
-        <ChevronRight className="w-3 h-3 text-gray-700" />
-        <span className="text-gray-300 font-medium">{pageName}</span>
+        <Shield className="w-3.5 h-3.5 text-purple-400" />
+        <span className="text-purple-500/70 font-medium">Admin</span>
+        <ChevronRight className="w-3 h-3 text-purple-700/50" />
+        <span className="text-purple-100 font-semibold">{pageName}</span>
 
         {/* Pending alert pills */}
         {pendingDeposits > 0 && (

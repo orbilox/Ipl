@@ -17,7 +17,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   ])
 
   return (
-    <div className="admin-panel flex h-screen bg-[#0d1117] overflow-hidden">
+    <div className="admin-panel flex h-screen overflow-hidden" style={{ background: '#07000f' }}>
       <AdminSidebar userRole={session.user.role} userName={session.user.name || ''} />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <AdminTopBar
@@ -26,7 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           adminName={session.user.name || ''}
           adminRole={session.user.role}
         />
-        <main className="flex-1 overflow-y-auto bg-[#0d1117]">
+        <main className="flex-1 overflow-y-auto" style={{ background: '#07000f' }}>
           {children}
         </main>
       </div>
