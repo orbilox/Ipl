@@ -86,7 +86,7 @@ export default function AdminSidebar({ userRole, userName }: Props) {
             </div>
             <div className="space-y-0.5">
               {section.items.map(item => {
-                const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+                const active = ('exact' in item && item.exact) ? pathname === item.href : pathname.startsWith(item.href)
                 return (
                   <Link
                     key={item.href}
