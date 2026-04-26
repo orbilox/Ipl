@@ -1,11 +1,12 @@
 import Link from 'next/link'
+import LandingNavbar from '@/components/layout/LandingNavbar'
 import { Trophy, TrendingUp, Shield, Zap, Users, Star, ChevronRight, PlayCircle, DollarSign, Target, Award } from 'lucide-react'
 
 const stats = [
   { label: 'Active Users', value: '2.5L+', icon: Users },
-  { label: 'Prize Pool', value: '₹10Cr+', icon: Trophy },
+  { label: 'Prize Pool', value: '🪙 10Cr+', icon: Trophy },
   { label: 'Matches Covered', value: '60+', icon: Target },
-  { label: 'Total Payouts', value: '₹50Cr+', icon: DollarSign },
+  { label: 'Total Payouts', value: '🪙 50Cr+', icon: DollarSign },
 ]
 
 const features = [
@@ -42,39 +43,17 @@ const features = [
 ]
 
 const howItWorks = [
-  { step: '01', title: 'Register & Get Bonus', desc: 'Sign up and get ₹50 welcome bonus instantly' },
-  { step: '02', title: 'Add Money', desc: 'Deposit using UPI, Net Banking or Cards' },
-  { step: '03', title: 'Trade & Bet', desc: 'Pick your match and start trading or betting' },
-  { step: '04', title: 'Win & Withdraw', desc: 'Win real money and withdraw instantly' },
+  { step: '01', title: 'Register & Get Bonus', desc: 'Sign up and get 🪙 50 Tokens welcome bonus instantly' },
+  { step: '02', title: 'Buy Tokens', desc: 'Buy tokens using UPI or Net Banking. 1 Token = ₹1' },
+  { step: '03', title: 'Trade & Bet', desc: 'Pick your match and start trading or betting with tokens' },
+  { step: '04', title: 'Win & Redeem', desc: 'Win tokens and redeem them for real money instantly' },
 ]
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#0f0f1a] overflow-x-hidden">
       {/* Navbar */}
-      <nav className="fixed top-0 inset-x-0 z-50 glass border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
-              <Trophy className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-display font-bold text-lg text-white">IPL <span className="text-orange-400">Trading</span></span>
-          </Link>
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
-            <Link href="#features" className="hover:text-white transition-colors">Features</Link>
-            <Link href="#how-it-works" className="hover:text-white transition-colors">How It Works</Link>
-            <Link href="#contests" className="hover:text-white transition-colors">Contests</Link>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm font-medium text-gray-300 hover:text-white transition-colors px-4 py-2">
-              Login
-            </Link>
-            <Link href="/register" className="btn-primary text-sm px-5 py-2.5">
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <LandingNavbar />
 
       {/* Hero Section */}
       <section className="relative pt-24 pb-20 px-4 sm:px-6 overflow-hidden">
@@ -136,8 +115,8 @@ export default function LandingPage() {
           <div className="animate-ticker inline-flex gap-12 text-sm text-gray-400">
             <span>🏏 RCB vs KKR — RCB: 187/5 (20.0) | KKR: 45/2 (6.2) — KKR need 143 in 82 balls</span>
             <span>📊 Trade: RCB 1.45x | KKR 2.80x</span>
-            <span>🏆 Mega Contest: ₹40L Prize Pool — 8,234 Teams Joined</span>
-            <span>💰 Top Winner Today: Rahul S. won ₹1,24,000</span>
+            <span>🏆 Mega Contest: 🪙 40L Token Prize Pool — 8,234 Teams Joined</span>
+            <span>💰 Top Winner Today: Rahul S. won 🪙 1,24,000 Tokens</span>
             <span>🏏 MI vs CSK Tomorrow 7:30 PM — Pre-match trading open!</span>
           </div>
         </div>
@@ -202,14 +181,14 @@ export default function LandingPage() {
             <h2 className="font-display font-bold text-3xl sm:text-4xl text-white mb-4">
               Massive Prize <span className="text-gradient">Contests</span>
             </h2>
-            <p className="text-gray-400 text-lg">Join contests starting from ₹19. Win up to ₹1 Crore!</p>
+            <p className="text-gray-400 text-lg">Join contests from 🪙 19 Tokens. Win up to 🪙 1 Crore Tokens!</p>
           </div>
 
           <div className="grid sm:grid-cols-3 gap-6 mb-10">
             {[
-              { name: 'Mega Contest', prize: '₹40 Lakhs', entry: '₹49', spots: '10,000', filled: 82, badge: '🔥 Featured', color: 'from-orange-500/20 to-red-500/10' },
-              { name: 'Champion League', prize: '₹5 Lakhs', entry: '₹99', spots: '1,000', filled: 64, badge: '⚡ Hot', color: 'from-blue-500/20 to-purple-500/10' },
-              { name: 'Head to Head', prize: '₹90', entry: '₹49', spots: '2', filled: 50, badge: '👊 1v1', color: 'from-green-500/20 to-teal-500/10' },
+              { name: 'Mega Contest', prize: '🪙 40 Lakhs', entry: '🪙 49', spots: '10,000', filled: 82, badge: '🔥 Featured', color: 'from-orange-500/20 to-red-500/10' },
+              { name: 'Champion League', prize: '🪙 5 Lakhs', entry: '🪙 99', spots: '1,000', filled: 64, badge: '⚡ Hot', color: 'from-blue-500/20 to-purple-500/10' },
+              { name: 'Head to Head', prize: '🪙 90', entry: '🪙 49', spots: '2', filled: 50, badge: '👊 1v1', color: 'from-green-500/20 to-teal-500/10' },
             ].map((contest) => (
               <div key={contest.name} className={`card p-6 bg-gradient-to-br ${contest.color} border border-white/5`}>
                 <div className="flex items-center justify-between mb-4">
@@ -244,10 +223,10 @@ export default function LandingPage() {
         <div className="max-w-3xl mx-auto text-center">
           <div className="card p-10 bg-gradient-to-br from-orange-500/10 to-red-500/5 border border-orange-500/20 glow-orange">
             <h2 className="font-display font-black text-3xl sm:text-4xl text-white mb-4">
-              Ready to Trade? <span className="text-gradient">Get ₹50 Free!</span>
+              Ready to Trade? <span className="text-gradient">Get 🪙 50 Tokens Free!</span>
             </h2>
             <p className="text-gray-400 text-lg mb-8">
-              Register now and get ₹50 welcome bonus to start your trading journey.
+              Register now and get 🪙 50 Tokens welcome bonus to start your trading journey.
               No deposit required for the welcome bonus.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
