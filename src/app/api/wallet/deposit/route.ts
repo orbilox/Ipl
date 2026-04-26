@@ -6,7 +6,9 @@ import { z } from 'zod'
 
 const depositSchema = z.object({
   amount: z.number().min(100).max(100000),
-  method: z.enum(['upi', 'netbanking', 'card', 'wallet']),
+  utrNumber: z.string().min(6, 'Enter a valid UTR/Transaction ID'),
+  screenshotUrl: z.string().optional(),
+  method: z.enum(['upi', 'bank']).default('upi'),
 })
 
 export async function POST(req: NextRequest) {
@@ -15,61 +17,47 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { amount, method } = depositSchema.parse(body)
+    const { amount, utrNumber, screenshotUrl, method } = depositSchema.parse(body)
 
-    // In production: integrate with Razorpay
-    // For demo: simulate successful payment
-    const user = await prisma.user.findUnique({ where: { id: session.user.id } })
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    // Check for duplicate UTR
+    const existing = await prisma.deposit.findFirst({ where: { utrNumber } })
+    if (existing) return NextResponse.json({ error: 'This UTR/Transaction ID has already been submitted' }, { status: 400 })
 
-    const newBalance = user.balance + amount
+    const deposit = await prisma.deposit.create({
+      data: {
+        userId: session.user.id,
+        amount,
+        method,
+        utrNumber,
+        screenshotUrl: screenshotUrl || null,
+        status: 'pending',
+      }
+    })
 
-    await prisma.$transaction([
-      prisma.deposit.create({
-        data: {
-          userId: session.user.id,
-          amount,
-          method,
-          gateway: 'razorpay',
-          status: 'completed',
-        }
-      }),
-      prisma.user.update({
-        where: { id: session.user.id },
-        data: {
-          balance: { increment: amount },
-          totalDeposited: { increment: amount },
-        }
-      }),
-      prisma.transaction.create({
-        data: {
-          userId: session.user.id,
-          type: 'deposit',
-          amount,
-          balance: newBalance,
-          description: `Deposit via ${method.toUpperCase()}`,
-          status: 'completed',
-        }
-      }),
-      prisma.notification.create({
-        data: {
-          userId: session.user.id,
-          title: 'Deposit Successful',
-          message: `₹${amount} has been added to your wallet`,
-          type: 'success',
-        }
-      })
-    ])
+    await prisma.notification.create({
+      data: {
+        userId: session.user.id,
+        title: 'Deposit Request Submitted',
+        message: `Your deposit of ₹${amount} is under review. UTR: ${utrNumber}`,
+        type: 'info',
+      }
+    })
 
-    return NextResponse.json({
-      message: 'Deposit successful',
-      amount,
-      newBalance,
-    }, { status: 200 })
+    return NextResponse.json({ message: 'Deposit request submitted successfully. Admin will verify and credit within 30 minutes.', depositId: deposit.id })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0].message }, { status: 400 })
-    }
-    return NextResponse.json({ error: 'Deposit failed' }, { status: 500 })
+    if (error instanceof z.ZodError) return NextResponse.json({ error: error.errors[0].message }, { status: 400 })
+    return NextResponse.json({ error: 'Submission failed' }, { status: 500 })
   }
+}
+
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const deposits = await prisma.deposit.findMany({
+    where: { userId: session.user.id },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  })
+  return NextResponse.json({ deposits })
 }

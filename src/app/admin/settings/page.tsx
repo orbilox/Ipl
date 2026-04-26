@@ -2,16 +2,46 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { Loader2, Save } from 'lucide-react'
+import { Loader2, Save, QrCode } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function AdminSettingsPage() {
   const [editKey, setEditKey] = useState('')
   const [editValue, setEditValue] = useState('')
 
+  // Payment settings state
+  const [payment, setPayment] = useState({
+    payment_upi_id: '', payment_qr_url: '', payment_bank_name: '',
+    payment_account_number: '', payment_ifsc: '', payment_account_name: '', payment_note: '',
+  })
+  const [paymentLoaded, setPaymentLoaded] = useState(false)
+
   const { data, refetch } = useQuery({
     queryKey: ['admin-settings'],
     queryFn: () => fetch('/api/admin/settings').then(r => r.json()),
+  })
+
+  const { data: paymentData } = useQuery({
+    queryKey: ['payment-settings'],
+    queryFn: () => fetch('/api/admin/payment-settings').then(r => r.json()),
+    onSuccess: (d: any) => {
+      if (!paymentLoaded) {
+        setPayment(prev => ({ ...prev, ...d.settings }))
+        setPaymentLoaded(true)
+      }
+    },
+  } as any)
+
+  const paymentMutation = useMutation({
+    mutationFn: () => fetch('/api/admin/payment-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payment),
+    }).then(r => r.json()),
+    onSuccess: (data) => {
+      if (data.error) { toast.error(data.error); return }
+      toast.success('Payment settings saved!')
+    },
   })
 
   const updateMutation = useMutation({
@@ -92,6 +122,44 @@ export default function AdminSettingsPage() {
             </div>
           )
         })}
+      </div>
+
+      {/* Payment Settings */}
+      <div className="mt-8">
+        <div className="flex items-center gap-2 mb-4">
+          <QrCode className="w-5 h-5 text-orange-400" />
+          <h2 className="font-display font-bold text-xl text-white">Payment Settings</h2>
+        </div>
+        <p className="text-gray-400 text-sm mb-4">These details are shown to users when they add money to their wallet.</p>
+        <div className="card p-5 space-y-4">
+          {[
+            { key: 'payment_upi_id', label: 'UPI ID', ph: 'yourname@paytm' },
+            { key: 'payment_qr_url', label: 'QR Code Image URL', ph: 'https://... (link to QR image)' },
+            { key: 'payment_account_name', label: 'Account Holder Name', ph: 'Your Name / Company Name' },
+            { key: 'payment_account_number', label: 'Account Number', ph: '00001234567890' },
+            { key: 'payment_ifsc', label: 'IFSC Code', ph: 'SBIN0001234' },
+            { key: 'payment_bank_name', label: 'Bank Name', ph: 'State Bank of India' },
+            { key: 'payment_note', label: 'Payment Note (shown to users)', ph: 'e.g. Use same UPI ID for all payments' },
+          ].map(({ key, label, ph }) => (
+            <div key={key}>
+              <label className="text-sm text-gray-400 mb-1 block">{label}</label>
+              <input type="text" value={(payment as any)[key]} onChange={e => setPayment(p => ({ ...p, [key]: e.target.value }))}
+                placeholder={ph} className="input" />
+            </div>
+          ))}
+
+          {payment.payment_qr_url && (
+            <div className="flex justify-center p-4 bg-white rounded-xl">
+              <img src={payment.payment_qr_url} alt="QR Preview" className="w-40 h-40 object-contain" />
+            </div>
+          )}
+
+          <button onClick={() => paymentMutation.mutate()} disabled={paymentMutation.isPending}
+            className="btn-primary w-full flex items-center justify-center gap-2">
+            {paymentMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Save Payment Settings
+          </button>
+        </div>
       </div>
 
       <div className="mt-8 card p-5 bg-red-500/5 border-red-500/20">

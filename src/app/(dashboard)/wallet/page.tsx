@@ -1,354 +1,376 @@
 'use client'
 
 import { useState } from 'react'
-import { useSession, signIn } from 'next-auth/react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import TopBar from '@/components/layout/TopBar'
-import { Wallet, TrendingUp, TrendingDown, Plus, ArrowDown, ArrowUpRight, Loader2, CreditCard, Smartphone, Building2, CheckCircle } from 'lucide-react'
-import { cn, formatCurrency, formatDateTime, timeAgo } from '@/lib/utils'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { useSession } from 'next-auth/react'
+import { ArrowDownLeft, ArrowUpRight, Clock, Copy, CheckCircle, XCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { cn, formatCurrency, formatDateTime } from '@/lib/utils'
+import TopBar from '@/components/layout/TopBar'
 
-const DEPOSIT_AMOUNTS = [100, 200, 500, 1000, 2000, 5000]
-const PAYMENT_METHODS = [
-  { id: 'upi', label: 'UPI', icon: Smartphone, desc: 'Instant payment', color: 'text-green-400' },
-  { id: 'card', label: 'Card', icon: CreditCard, desc: 'Credit/Debit', color: 'text-blue-400' },
-  { id: 'netbanking', label: 'Net Banking', icon: Building2, desc: 'All banks', color: 'text-purple-400' },
-]
+const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000]
 
 export default function WalletPage() {
   const { data: session, update } = useSession()
-  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw' | 'history'>('deposit')
-  const [depositAmount, setDepositAmount] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('upi')
-  const [withdrawAmount, setWithdrawAmount] = useState('')
-  const [withdrawMethod, setWithdrawMethod] = useState('upi')
-  const [upiId, setUpiId] = useState('')
-  const [success, setSuccess] = useState(false)
-
-  const { data: txData } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: () => fetch('/api/wallet/transactions').then(r => r.json()),
-    refetchInterval: 30000,
-  })
-
-  const depositMutation = useMutation({
-    mutationFn: (data: any) => fetch('/api/wallet/deposit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }).then(r => r.json()),
-    onSuccess: async (data) => {
-      if (data.error) { toast.error(data.error); return }
-      setSuccess(true)
-      toast.success(`₹${depositAmount} added to your wallet! 💰`)
-      setDepositAmount('')
-      await update({ balance: data.newBalance })
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
-      setTimeout(() => setSuccess(false), 3000)
-    }
-  })
-
-  const withdrawMutation = useMutation({
-    mutationFn: (data: any) => fetch('/api/wallet/withdraw', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }).then(r => r.json()),
-    onSuccess: async (data) => {
-      if (data.error) { toast.error(data.error); return }
-      toast.success('Withdrawal request submitted!')
-      setWithdrawAmount('')
-      setUpiId('')
-      await update({ balance: data.newBalance })
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
-    }
-  })
-
-  function handleDeposit() {
-    const amount = parseFloat(depositAmount)
-    if (!amount || amount < 100) { toast.error('Minimum deposit is ₹100'); return }
-    depositMutation.mutate({ amount, method: paymentMethod })
-  }
-
-  function handleWithdraw() {
-    const amount = parseFloat(withdrawAmount)
-    if (!amount || amount < 200) { toast.error('Minimum withdrawal is ₹200'); return }
-    if (amount > (session?.user?.balance || 0)) { toast.error('Insufficient balance'); return }
-    if (!upiId) { toast.error('Enter UPI ID or bank details'); return }
-    withdrawMutation.mutate({
-      amount,
-      method: withdrawMethod,
-      accountDetails: { upiId }
-    })
-  }
-
-  const stats = txData?.summary || {}
-  const transactions = txData?.transactions || []
 
   return (
     <>
-      <TopBar title="Wallet" />
+      <TopBar />
       <div className="p-4 sm:p-6 max-w-2xl mx-auto">
-        {/* Balance Card */}
-        <div className="card p-6 mb-6 bg-gradient-to-br from-orange-500/10 to-red-500/5 border-orange-500/20 glow-orange">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Wallet className="w-5 h-5 text-orange-400" />
-              <span className="text-gray-400 text-sm">Total Balance</span>
-            </div>
-            <span className="badge bg-green-500/10 text-green-400 text-xs">Available</span>
-          </div>
-          <div className="font-display font-black text-4xl text-white mb-4">
-            {formatCurrency(session?.user?.balance || 0)}
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: 'Total Deposited', value: stats.totalDeposited || 0, icon: ArrowDown, color: 'text-green-400' },
-              { label: 'Total Won', value: stats.totalWon || 0, icon: TrendingUp, color: 'text-blue-400' },
-              { label: 'Total Withdrawn', value: stats.totalWithdrawn || 0, icon: ArrowUpRight, color: 'text-orange-400' },
-            ].map(s => (
-              <div key={s.label} className="text-center">
-                <s.icon className={cn('w-4 h-4 mx-auto mb-1', s.color)} />
-                <div className={cn('font-bold text-sm', s.color)}>{formatCurrency(s.value)}</div>
-                <div className="text-gray-500 text-xs">{s.label}</div>
-              </div>
-            ))}
-          </div>
+        <h1 className="font-display font-bold text-2xl text-white mb-2">My Wallet</h1>
+
+        {/* Balance */}
+        <div className="card p-5 mb-6 bg-gradient-to-r from-orange-500/10 to-blue-500/10 border-orange-500/20">
+          <div className="text-gray-400 text-sm mb-1">Available Balance</div>
+          <div className="font-display font-black text-4xl text-white">{formatCurrency(session?.user?.balance || 0)}</div>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-1 mb-6 bg-gray-900/50 p-1 rounded-xl">
           {[
-            { id: 'deposit', label: 'Add Money', icon: Plus },
+            { id: 'deposit', label: 'Add Money', icon: ArrowDownLeft },
             { id: 'withdraw', label: 'Withdraw', icon: ArrowUpRight },
-            { id: 'history', label: 'History', icon: TrendingDown },
+            { id: 'history', label: 'History', icon: Clock },
           ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={cn(
-                'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all',
-                activeTab === tab.id ? 'bg-orange-500 text-white' : 'text-gray-400 hover:text-white'
-              )}
-            >
-              <tab.icon className="w-4 h-4" />
-              <span className="hidden sm:block">{tab.label}</span>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
+              className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all',
+                activeTab === tab.id ? 'bg-orange-500 text-white' : 'text-gray-400 hover:text-white')}>
+              <tab.icon className="w-4 h-4" />{tab.label}
             </button>
           ))}
         </div>
 
-        {/* Deposit */}
-        {activeTab === 'deposit' && (
-          <div className="space-y-5">
-            {success && (
-              <div className="card p-4 bg-green-500/10 border-green-500/20 flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-                <span className="text-green-400 font-medium">Money added successfully!</span>
-              </div>
-            )}
+        {activeTab === 'deposit' && <DepositFlow />}
+        {activeTab === 'withdraw' && <WithdrawFlow balance={session?.user?.balance || 0} onSuccess={() => update()} />}
+        {activeTab === 'history' && <HistoryTab />}
+      </div>
+    </>
+  )
+}
 
-            <div>
-              <label className="text-sm text-gray-400 mb-2 block">Select Amount</label>
-              <div className="grid grid-cols-3 gap-3 mb-3">
-                {DEPOSIT_AMOUNTS.map(amt => (
-                  <button
-                    key={amt}
-                    onClick={() => setDepositAmount(String(amt))}
-                    className={cn(
-                      'py-3 rounded-xl border text-sm font-semibold transition-all',
-                      depositAmount === String(amt)
-                        ? 'border-orange-500 bg-orange-500/10 text-orange-400'
-                        : 'border-gray-700 bg-gray-900/50 text-gray-300 hover:border-gray-600'
-                    )}
-                  >
-                    ₹{amt >= 1000 ? `${amt/1000}K` : amt}
-                  </button>
-                ))}
-              </div>
-              <input
-                type="number"
-                value={depositAmount}
-                onChange={e => setDepositAmount(e.target.value)}
-                placeholder="Or enter custom amount (min ₹100)"
-                className="input"
-              />
+// ── Step-by-step Deposit Flow ─────────────────────────────────────────────────
+
+function DepositFlow() {
+  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [amount, setAmount] = useState('')
+  const [utrNumber, setUtrNumber] = useState('')
+  const [screenshotUrl, setScreenshotUrl] = useState('')
+  const [copied, setCopied] = useState<string | null>(null)
+
+  const { data: settingsData } = useQuery({
+    queryKey: ['payment-settings'],
+    queryFn: () => fetch('/api/admin/payment-settings').then(r => r.json()),
+  })
+  const s = settingsData?.settings || {}
+
+  const submitMutation = useMutation({
+    mutationFn: () => fetch('/api/wallet/deposit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: parseFloat(amount), utrNumber, screenshotUrl, method: 'upi' }),
+    }).then(r => r.json()),
+    onSuccess: (data) => {
+      if (data.error) { toast.error(data.error); return }
+      setStep(3)
+    },
+    onError: () => toast.error('Submission failed'),
+  })
+
+  function copy(text: string, key: string) {
+    navigator.clipboard.writeText(text).catch(() => {})
+    setCopied(key)
+    toast.success('Copied!')
+    setTimeout(() => setCopied(null), 2000)
+  }
+
+  // Step 1 — Choose amount
+  if (step === 1) return (
+    <div className="card p-5">
+      <h3 className="font-semibold text-white mb-4">Step 1 of 2 — Enter Amount</h3>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {QUICK_AMOUNTS.map(a => (
+          <button key={a} onClick={() => setAmount(String(a))}
+            className={cn('px-4 py-2 rounded-xl border text-sm font-medium transition-all',
+              amount === String(a) ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-700 text-gray-300 hover:border-orange-500')}>
+            ₹{a >= 1000 ? `${a / 1000}K` : a}
+          </button>
+        ))}
+      </div>
+      <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
+        placeholder="Enter amount" className="input mb-2" min={100} />
+      <div className="text-xs text-gray-500 mb-5">Minimum ₹100 · Maximum ₹1,00,000</div>
+      <button onClick={() => {
+        if (!amount || parseFloat(amount) < 100) { toast.error('Minimum deposit is ₹100'); return }
+        setStep(2)
+      }} className="btn-primary w-full">Continue to Payment →</button>
+    </div>
+  )
+
+  // Step 2 — Pay + enter UTR
+  if (step === 2) return (
+    <div className="space-y-4">
+      {/* Payment details from admin */}
+      <div className="card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-white">Pay <span className="text-orange-400">₹{parseFloat(amount).toLocaleString()}</span></h3>
+          <button onClick={() => setStep(1)} className="text-xs text-gray-500 hover:text-white">← Change amount</button>
+        </div>
+
+        {/* QR Code */}
+        {s.payment_qr_url ? (
+          <div className="flex justify-center mb-5">
+            <div className="bg-white p-3 rounded-2xl shadow-lg">
+              <img src={s.payment_qr_url} alt="Scan to Pay" className="w-52 h-52 object-contain" />
             </div>
-
-            <div>
-              <label className="text-sm text-gray-400 mb-2 block">Payment Method</label>
-              <div className="grid grid-cols-3 gap-3">
-                {PAYMENT_METHODS.map(method => (
-                  <button
-                    key={method.id}
-                    onClick={() => setPaymentMethod(method.id)}
-                    className={cn(
-                      'p-4 rounded-xl border text-center transition-all',
-                      paymentMethod === method.id
-                        ? 'border-orange-500 bg-orange-500/10'
-                        : 'border-gray-700 bg-gray-900/50 hover:border-gray-600'
-                    )}
-                  >
-                    <method.icon className={cn('w-6 h-6 mx-auto mb-1', method.color)} />
-                    <div className="text-white text-xs font-medium">{method.label}</div>
-                    <div className="text-gray-500 text-xs">{method.desc}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {depositAmount && parseFloat(depositAmount) >= 100 && (
-              <div className="p-4 bg-gray-900/50 rounded-xl border border-gray-800 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Amount</span>
-                  <span className="text-white font-medium">{formatCurrency(parseFloat(depositAmount))}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Processing Fee</span>
-                  <span className="text-green-400">FREE</span>
-                </div>
-                <div className="border-t border-gray-800 pt-2 flex justify-between">
-                  <span className="text-white font-medium">Total to Pay</span>
-                  <span className="text-white font-bold">{formatCurrency(parseFloat(depositAmount))}</span>
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={handleDeposit}
-              disabled={depositMutation.isPending || !depositAmount}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-4 text-base"
-            >
-              {depositMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-              {depositMutation.isPending ? 'Processing...' : `Add ${depositAmount ? formatCurrency(parseFloat(depositAmount)) : 'Money'}`}
-            </button>
-
-            <p className="text-center text-gray-500 text-xs">
-              🔒 Secure payment · 100% Safe · Instant credit
-            </p>
+          </div>
+        ) : (
+          <div className="bg-gray-900 border border-dashed border-gray-700 rounded-xl p-8 text-center text-gray-500 text-sm mb-5">
+            QR Code not configured yet — contact admin
           </div>
         )}
 
-        {/* Withdraw */}
-        {activeTab === 'withdraw' && (
-          <div className="space-y-5">
-            <div className="p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-xl text-sm">
-              <p className="text-yellow-400 font-medium mb-1">Withdrawal Policy</p>
-              <p className="text-gray-400">Min ₹200 · Processed in 24 hours · KYC verification required</p>
+        {/* UPI ID */}
+        {s.payment_upi_id && (
+          <div className="bg-gray-900 rounded-xl p-4 mb-3">
+            <div className="text-xs text-gray-400 mb-1">UPI ID</div>
+            <div className="flex items-center justify-between">
+              <span className="text-white font-mono font-bold text-lg">{s.payment_upi_id}</span>
+              <button onClick={() => copy(s.payment_upi_id, 'upi')}
+                className="flex items-center gap-1 bg-orange-500/10 text-orange-400 px-3 py-1.5 rounded-lg text-xs">
+                {copied === 'upi' ? <CheckCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied === 'upi' ? 'Copied!' : 'Copy'}
+              </button>
             </div>
-
-            <div>
-              <label className="text-sm text-gray-400 mb-2 block">Withdrawal Method</label>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { id: 'upi', label: 'UPI', icon: Smartphone },
-                  { id: 'bank', label: 'Bank', icon: Building2 },
-                  { id: 'paytm', label: 'Paytm', icon: Wallet },
-                ].map(method => (
-                  <button
-                    key={method.id}
-                    onClick={() => setWithdrawMethod(method.id)}
-                    className={cn(
-                      'p-3 rounded-xl border text-center transition-all',
-                      withdrawMethod === method.id
-                        ? 'border-orange-500 bg-orange-500/10'
-                        : 'border-gray-700 bg-gray-900/50'
-                    )}
-                  >
-                    <method.icon className="w-5 h-5 mx-auto mb-1 text-gray-300" />
-                    <div className="text-xs text-gray-300">{method.label}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-400 mb-2 block">UPI ID / Account Details</label>
-              <input
-                type="text"
-                value={upiId}
-                onChange={e => setUpiId(e.target.value)}
-                placeholder={withdrawMethod === 'upi' ? 'yourname@upi' : 'Account number'}
-                className="input"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-400 mb-2 block">Amount (₹)</label>
-              <input
-                type="number"
-                value={withdrawAmount}
-                onChange={e => setWithdrawAmount(e.target.value)}
-                placeholder="Min ₹200"
-                className="input"
-                min={200}
-                max={session?.user?.balance || 0}
-              />
-              <div className="flex gap-2 mt-2">
-                {[200, 500, 1000, 5000].map(amt => (
-                  <button key={amt}
-                    onClick={() => setWithdrawAmount(String(Math.min(amt, session?.user?.balance || 0)))}
-                    className="flex-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 rounded-lg transition-colors">
-                    ₹{amt >= 1000 ? `${amt/1000}K` : amt}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setWithdrawAmount(String(session?.user?.balance || 0))}
-                  className="flex-1 text-xs bg-gray-800 hover:bg-gray-700 text-orange-400 py-1.5 rounded-lg transition-colors">
-                  MAX
-                </button>
-              </div>
-            </div>
-
-            <button
-              onClick={handleWithdraw}
-              disabled={withdrawMutation.isPending || !withdrawAmount || !upiId}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-4"
-            >
-              {withdrawMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {withdrawMutation.isPending ? 'Processing...' : 'Request Withdrawal'}
-            </button>
           </div>
         )}
 
-        {/* History */}
-        {activeTab === 'history' && (
-          <div>
-            {transactions.length === 0 ? (
-              <div className="text-center py-20 text-gray-500">No transactions yet</div>
-            ) : (
-              <div className="space-y-3">
-                {transactions.map((tx: any) => (
-                  <div key={tx.id} className="flex items-center gap-4 p-4 card">
-                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-lg',
-                      ['deposit', 'bonus', 'trade_win', 'bet_win', 'contest_win', 'refund'].includes(tx.type)
-                        ? 'bg-green-500/10' : 'bg-red-500/10'
-                    )}>
-                      {tx.type === 'deposit' ? '💳' :
-                       tx.type === 'withdrawal' ? '💸' :
-                       tx.type === 'trade_win' || tx.type === 'bet_win' ? '🏆' :
-                       tx.type === 'bonus' ? '🎁' :
-                       tx.type === 'contest_win' ? '🥇' : '🎯'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-white text-sm font-medium truncate">{tx.description}</div>
-                      <div className="text-gray-500 text-xs">{timeAgo(tx.createdAt)}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className={cn('font-bold text-sm',
-                        tx.amount > 0 ? 'text-green-400' : 'text-red-400'
-                      )}>
-                        {tx.amount > 0 ? '+' : ''}{formatCurrency(Math.abs(tx.amount))}
-                      </div>
-                      <div className="text-gray-500 text-xs">{formatCurrency(tx.balance)}</div>
-                    </div>
+        {/* Bank Details */}
+        {s.payment_account_number && (
+          <div className="bg-gray-900 rounded-xl p-4 mb-3">
+            <div className="text-xs text-gray-400 mb-3 font-semibold uppercase tracking-wide">Bank Transfer</div>
+            <div className="space-y-2.5">
+              {[
+                { label: 'Account Name', value: s.payment_account_name, key: 'name' },
+                { label: 'Account Number', value: s.payment_account_number, key: 'acc' },
+                { label: 'IFSC Code', value: s.payment_ifsc, key: 'ifsc' },
+                { label: 'Bank', value: s.payment_bank_name, key: 'bank' },
+              ].filter(i => i.value).map(({ label, value, key }) => (
+                <div key={key} className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs text-gray-500">{label}</div>
+                    <div className="text-white text-sm font-mono">{value}</div>
                   </div>
-                ))}
-              </div>
-            )}
+                  <button onClick={() => copy(value, key)} className="text-orange-400 p-1">
+                    {copied === key ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {s.payment_note && (
+          <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-3 text-xs text-yellow-400/90">
+            ℹ️ {s.payment_note}
           </div>
         )}
       </div>
-    </>
+
+      {/* UTR Entry */}
+      <div className="card p-5">
+        <h3 className="font-semibold text-white mb-1">Step 2 of 2 — Confirm Payment</h3>
+        <p className="text-gray-500 text-xs mb-4">After paying, enter your transaction details below</p>
+
+        <div className="mb-4">
+          <label className="text-sm text-gray-400 mb-1 block">UTR / Transaction ID <span className="text-red-400">*</span></label>
+          <input type="text" value={utrNumber} onChange={e => setUtrNumber(e.target.value)}
+            placeholder="e.g. 425123456789" className="input" />
+          <div className="text-xs text-gray-500 mt-1">Find this in your UPI app → Transaction history → UTR number</div>
+        </div>
+
+        <div className="mb-5">
+          <label className="text-sm text-gray-400 mb-1 block">Payment Screenshot (optional)</label>
+          <input type="text" value={screenshotUrl} onChange={e => setScreenshotUrl(e.target.value)}
+            placeholder="Paste image/drive link" className="input" />
+          <div className="text-xs text-gray-500 mt-1">Upload to Google Drive → right click → copy link</div>
+        </div>
+
+        <button onClick={() => {
+          if (!utrNumber || utrNumber.trim().length < 6) { toast.error('Enter a valid UTR / Transaction ID'); return }
+          submitMutation.mutate()
+        }} disabled={submitMutation.isPending} className="btn-primary w-full text-base py-3">
+          {submitMutation.isPending ? 'Submitting...' : '✓ Submit for Approval'}
+        </button>
+      </div>
+    </div>
+  )
+
+  // Step 3 — Success
+  return (
+    <div className="card p-8 text-center">
+      <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+        <CheckCircle className="w-10 h-10 text-green-400" />
+      </div>
+      <h3 className="font-bold text-white text-xl mb-2">Request Submitted!</h3>
+      <p className="text-gray-400 text-sm mb-1">₹{parseFloat(amount).toLocaleString()} deposit is under review</p>
+      <p className="text-gray-500 text-xs mb-2">UTR: <span className="text-white font-mono">{utrNumber}</span></p>
+      <p className="text-gray-500 text-xs mb-8">Admin will verify and credit your wallet within 30 minutes.</p>
+      <button onClick={() => { setStep(1); setAmount(''); setUtrNumber(''); setScreenshotUrl('') }}
+        className="btn-secondary w-full">Add More Money</button>
+    </div>
+  )
+}
+
+// ── Withdraw Flow ─────────────────────────────────────────────────────────────
+
+function WithdrawFlow({ balance, onSuccess }: { balance: number; onSuccess: () => void }) {
+  const [amount, setAmount] = useState('')
+  const [method, setMethod] = useState<'upi' | 'bank'>('upi')
+  const [upiId, setUpiId] = useState('')
+  const [accountName, setAccountName] = useState('')
+  const [accountNumber, setAccountNumber] = useState('')
+  const [ifsc, setIfsc] = useState('')
+  const [bankName, setBankName] = useState('')
+
+  const mutation = useMutation({
+    mutationFn: () => fetch('/api/wallet/withdraw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: parseFloat(amount), method,
+        accountDetails: method === 'upi' ? { upiId } : { accountName, accountNumber, ifsc, bankName },
+      }),
+    }).then(r => r.json()),
+    onSuccess: (data) => {
+      if (data.error) { toast.error(data.error); return }
+      toast.success('Withdrawal request submitted!')
+      setAmount('')
+      onSuccess()
+    },
+  })
+
+  return (
+    <div className="card p-5">
+      <h3 className="font-semibold text-white mb-4">Withdraw Funds</h3>
+      <div className="mb-4">
+        <label className="text-sm text-gray-400 mb-1 block">Amount (₹)</label>
+        <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Min ₹200" className="input" />
+        <div className="flex gap-2 mt-2">
+          {[500, 1000, 5000].map(a => (
+            <button key={a} onClick={() => setAmount(String(Math.min(a, balance)))}
+              className="flex-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 rounded-lg">
+              ₹{a >= 1000 ? `${a / 1000}K` : a}
+            </button>
+          ))}
+          <button onClick={() => setAmount(String(Math.floor(balance)))}
+            className="flex-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 rounded-lg">Max</button>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <label className="text-sm text-gray-400 mb-2 block">Method</label>
+        <div className="grid grid-cols-2 gap-2">
+          {(['upi', 'bank'] as const).map(m => (
+            <button key={m} onClick={() => setMethod(m)}
+              className={cn('py-2.5 rounded-xl border text-sm font-medium transition-all',
+                method === m ? 'border-orange-500 bg-orange-500/10 text-white' : 'border-gray-800 text-gray-400 hover:border-gray-600')}>
+              {m === 'upi' ? '📱 UPI' : '🏦 Bank Transfer'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {method === 'upi' ? (
+        <div className="mb-4">
+          <label className="text-sm text-gray-400 mb-1 block">Your UPI ID</label>
+          <input type="text" value={upiId} onChange={e => setUpiId(e.target.value)} placeholder="yourname@paytm" className="input" />
+        </div>
+      ) : (
+        <div className="space-y-3 mb-4">
+          {[
+            { label: 'Account Holder Name', value: accountName, set: setAccountName, ph: 'Full name' },
+            { label: 'Account Number', value: accountNumber, set: setAccountNumber, ph: '00001234567890' },
+            { label: 'IFSC Code', value: ifsc, set: setIfsc, ph: 'SBIN0001234' },
+            { label: 'Bank Name', value: bankName, set: setBankName, ph: 'State Bank of India' },
+          ].map(({ label, value, set, ph }) => (
+            <div key={label}>
+              <label className="text-xs text-gray-400 mb-1 block">{label}</label>
+              <input type="text" value={value} onChange={e => set(e.target.value)} placeholder={ph} className="input text-sm py-2.5" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-3 text-xs text-yellow-400/80 mb-4">
+        ⚠️ Balance will be held until admin approves. Rejected requests are refunded automatically.
+      </div>
+
+      <div className="text-xs text-gray-500 mb-4">Available: {formatCurrency(balance)}</div>
+      <button onClick={() => mutation.mutate()} disabled={mutation.isPending} className="btn-primary w-full py-3">
+        {mutation.isPending ? 'Submitting...' : 'Request Withdrawal'}
+      </button>
+    </div>
+  )
+}
+
+// ── History ───────────────────────────────────────────────────────────────────
+
+function HistoryTab() {
+  const { data: depData } = useQuery({ queryKey: ['my-deposits'], queryFn: () => fetch('/api/wallet/deposit').then(r => r.json()) })
+  const { data: wdData } = useQuery({ queryKey: ['my-withdrawals'], queryFn: () => fetch('/api/wallet/withdraw').then(r => r.json()) })
+
+  const all = [
+    ...(depData?.deposits || []).map((d: any) => ({ ...d, _type: 'deposit' })),
+    ...(wdData?.withdrawals || []).map((w: any) => ({ ...w, _type: 'withdrawal' })),
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+  if (all.length === 0) return <div className="card p-10 text-center text-gray-500">No transactions yet</div>
+
+  return (
+    <div className="space-y-3">
+      {all.map((item: any) => (
+        <div key={item.id} className="card p-4">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              {item._type === 'deposit'
+                ? <ArrowDownLeft className="w-4 h-4 text-green-400" />
+                : <ArrowUpRight className="w-4 h-4 text-red-400" />}
+              <span className="text-white font-medium text-sm capitalize">
+                {item._type === 'deposit' ? 'Add Money' : 'Withdrawal'}
+              </span>
+            </div>
+            <span className={cn('font-bold text-sm', item._type === 'deposit' ? 'text-green-400' : 'text-red-400')}>
+              {item._type === 'deposit' ? '+' : '-'}{formatCurrency(item.amount)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-500 text-xs">{formatDateTime(item.createdAt)}</span>
+            <StatusBadge status={item.status} />
+          </div>
+          {item.utrNumber && <div className="text-xs text-gray-600 mt-1.5 font-mono">UTR: {item.utrNumber}</div>}
+          {item.adminNote && (
+            <div className="text-xs text-yellow-400/80 bg-yellow-500/5 rounded-lg p-2 mt-2">
+              Admin note: {item.adminNote}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { color: string; icon: typeof Clock; label: string }> = {
+    pending:   { color: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20', icon: Clock, label: 'Pending' },
+    approved:  { color: 'text-green-400 bg-green-400/10 border-green-400/20', icon: CheckCircle, label: 'Approved' },
+    rejected:  { color: 'text-red-400 bg-red-400/10 border-red-400/20', icon: XCircle, label: 'Rejected' },
+    completed: { color: 'text-green-400 bg-green-400/10 border-green-400/20', icon: CheckCircle, label: 'Completed' },
+  }
+  const s = map[status] || map.pending
+  return (
+    <span className={cn('flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium', s.color)}>
+      <s.icon className="w-3 h-3" />{s.label}
+    </span>
   )
 }

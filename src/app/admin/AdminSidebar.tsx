@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import {
   LayoutDashboard, Users, Swords, CreditCard, Trophy, Settings,
-  LogOut, ArrowLeft, Wallet, AlertCircle
+  LogOut, ArrowLeft, Wallet, AlertCircle, ArrowDownLeft, ArrowUpRight
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -18,8 +18,9 @@ const adminNav = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/matches', label: 'Matches', icon: Swords },
+  { href: '/admin/deposits', label: 'Deposits', icon: ArrowDownLeft },
+  { href: '/admin/withdrawals', label: 'Withdrawals', icon: ArrowUpRight },
   { href: '/admin/transactions', label: 'Transactions', icon: CreditCard },
-  { href: '/admin/withdrawals', label: 'Withdrawals', icon: Wallet },
   { href: '/admin/contests', label: 'Contests', icon: Trophy },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
