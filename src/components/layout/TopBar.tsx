@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Bell, Wallet, Trophy, Search } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatTokens } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 
 export default function TopBar({ title }: { title?: string }) {
@@ -37,7 +37,7 @@ export default function TopBar({ title }: { title?: string }) {
           >
             <Wallet className="w-4 h-4 text-orange-400" />
             <span className="font-semibold text-sm text-white">
-              {formatCurrency(session?.user?.balance || 0)}
+              {formatTokens(session?.user?.balance || 0)}
             </span>
           </Link>
 

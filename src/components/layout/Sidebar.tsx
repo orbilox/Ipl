@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Swords, Trophy, Wallet, BarChart3, Users,
   Star, LogOut, Trophy as TrophyIcon, Bell, Settings, ChevronDown
 } from 'lucide-react'
-import { cn, formatCurrency } from '@/lib/utils'
+import { cn, formatTokens } from '@/lib/utils'
 import { useState } from 'react'
 
 const navItems = [
@@ -41,12 +41,12 @@ export default function Sidebar() {
 
       {/* Balance card */}
       <div className="p-4 mx-4 mt-4 rounded-xl bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20">
-        <div className="text-gray-400 text-xs mb-1">Wallet Balance</div>
+        <div className="text-gray-400 text-xs mb-1">Token Balance</div>
         <div className="font-display font-bold text-xl text-white">
-          {formatCurrency(session?.user?.balance || 0)}
+          {formatTokens(session?.user?.balance || 0)}
         </div>
         <Link href="/wallet" className="mt-2 inline-flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300 font-medium">
-          <Wallet className="w-3 h-3" /> Add Money
+          <Wallet className="w-3 h-3" /> Buy Tokens
         </Link>
       </div>
 

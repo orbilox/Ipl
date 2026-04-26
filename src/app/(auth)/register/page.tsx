@@ -58,7 +58,7 @@ export default function RegisterPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Registration failed')
 
-      toast.success('Account created! Get your ₹50 bonus 🎉')
+      toast.success('Account created! Get your 🪙 50 Token welcome bonus 🎉')
       router.push('/login')
     } catch (err: any) {
       toast.error(err.message || 'Registration failed')
@@ -88,7 +88,7 @@ export default function RegisterPage() {
             <Trophy className="w-7 h-7 text-white" />
           </div>
           <h1 className="font-display font-bold text-2xl text-white mb-1">Create Account</h1>
-          <p className="text-gray-400 text-sm">Join 2.5 lakh+ traders & get ₹50 free</p>
+          <p className="text-gray-400 text-sm">Join 2.5 lakh+ traders & get 🪙 50 Tokens free</p>
         </div>
 
         {/* Steps */}
@@ -164,7 +164,7 @@ export default function RegisterPage() {
               </div>
               {form.referralCode && (
                 <p className="text-green-400 text-xs mt-1 flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Extra ₹50 bonus with valid referral!
+                  <Check className="w-3 h-3" /> Extra 🪙 50 Tokens with valid referral!
                 </p>
               )}
             </div>

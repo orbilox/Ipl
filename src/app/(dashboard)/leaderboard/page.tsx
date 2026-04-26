@@ -1,6 +1,6 @@
 import TopBar from '@/components/layout/TopBar'
 import { prisma } from '@/lib/db'
-import { formatCurrency } from '@/lib/utils'
+import { formatTokens } from '@/lib/utils'
 import { Trophy, TrendingUp, Medal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -57,7 +57,7 @@ export default async function LeaderboardPage() {
                     {user.name.charAt(0)}
                   </div>
                   <div className="text-white text-xs font-medium truncate">{user.name.split(' ')[0]}</div>
-                  <div className="text-green-400 text-xs font-bold">{formatCurrency(user.netPnl)}</div>
+                  <div className="text-green-400 text-xs font-bold">{formatTokens(user.netPnl)}</div>
                 </div>
               )
             })}
@@ -93,7 +93,7 @@ export default async function LeaderboardPage() {
 
               <div className="text-right">
                 <div className={cn('font-bold text-sm', user.netPnl >= 0 ? 'text-green-400' : 'text-red-400')}>
-                  {user.netPnl >= 0 ? '+' : ''}{formatCurrency(user.netPnl)}
+                  {user.netPnl >= 0 ? '+' : ''}{formatTokens(user.netPnl)}
                 </div>
                 <div className="text-gray-500 text-xs">{user.winRate}% WR</div>
               </div>

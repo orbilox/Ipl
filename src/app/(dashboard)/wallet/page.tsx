@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
-import { ArrowDownLeft, ArrowUpRight, Clock, Copy, CheckCircle, XCircle } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, Clock, Copy, CheckCircle, XCircle, Coins } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { cn, formatCurrency, formatDateTime } from '@/lib/utils'
+import { cn, formatTokens, formatDateTime } from '@/lib/utils'
 import TopBar from '@/components/layout/TopBar'
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000]
@@ -18,19 +18,23 @@ export default function WalletPage() {
     <>
       <TopBar />
       <div className="p-4 sm:p-6 max-w-2xl mx-auto">
-        <h1 className="font-display font-bold text-2xl text-white mb-2">My Wallet</h1>
+        <h1 className="font-display font-bold text-2xl text-white mb-2">Token Wallet</h1>
 
-        {/* Balance */}
+        {/* Token Balance */}
         <div className="card p-5 mb-6 bg-gradient-to-r from-orange-500/10 to-blue-500/10 border-orange-500/20">
-          <div className="text-gray-400 text-sm mb-1">Available Balance</div>
-          <div className="font-display font-black text-4xl text-white">{formatCurrency(session?.user?.balance || 0)}</div>
+          <div className="flex items-center gap-2 mb-1">
+            <Coins className="w-4 h-4 text-orange-400" />
+            <div className="text-gray-400 text-sm">Token Balance</div>
+          </div>
+          <div className="font-display font-black text-4xl text-white">{formatTokens(session?.user?.balance || 0)}</div>
+          <div className="text-gray-500 text-xs mt-1">1 Token = ₹1 · Tokens never expire</div>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-1 mb-6 bg-gray-900/50 p-1 rounded-xl">
           {[
-            { id: 'deposit', label: 'Add Money', icon: ArrowDownLeft },
-            { id: 'withdraw', label: 'Withdraw', icon: ArrowUpRight },
+            { id: 'deposit', label: 'Buy Tokens', icon: ArrowDownLeft },
+            { id: 'withdraw', label: 'Redeem', icon: ArrowUpRight },
             { id: 'history', label: 'History', icon: Clock },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
@@ -41,17 +45,17 @@ export default function WalletPage() {
           ))}
         </div>
 
-        {activeTab === 'deposit' && <DepositFlow />}
-        {activeTab === 'withdraw' && <WithdrawFlow balance={session?.user?.balance || 0} onSuccess={() => update()} />}
+        {activeTab === 'deposit' && <BuyTokensFlow />}
+        {activeTab === 'withdraw' && <RedeemFlow balance={session?.user?.balance || 0} onSuccess={() => update()} />}
         {activeTab === 'history' && <HistoryTab />}
       </div>
     </>
   )
 }
 
-// ── Step-by-step Deposit Flow ─────────────────────────────────────────────────
+// ── Buy Tokens Flow ───────────────────────────────────────────────────────────
 
-function DepositFlow() {
+function BuyTokensFlow() {
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [amount, setAmount] = useState('')
   const [utrNumber, setUtrNumber] = useState('')
@@ -84,24 +88,25 @@ function DepositFlow() {
     setTimeout(() => setCopied(null), 2000)
   }
 
-  // Step 1 — Choose amount
+  // Step 1 — Choose token amount
   if (step === 1) return (
     <div className="card p-5">
-      <h3 className="font-semibold text-white mb-4">Step 1 of 2 — Enter Amount</h3>
+      <h3 className="font-semibold text-white mb-1">Step 1 of 2 — Choose Token Amount</h3>
+      <p className="text-gray-500 text-xs mb-4">1 Token = ₹1 · Pay via UPI or bank transfer</p>
       <div className="flex flex-wrap gap-2 mb-4">
         {QUICK_AMOUNTS.map(a => (
           <button key={a} onClick={() => setAmount(String(a))}
             className={cn('px-4 py-2 rounded-xl border text-sm font-medium transition-all',
               amount === String(a) ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-700 text-gray-300 hover:border-orange-500')}>
-            ₹{a >= 1000 ? `${a / 1000}K` : a}
+            🪙 {a >= 1000 ? `${a / 1000}K` : a}
           </button>
         ))}
       </div>
       <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
-        placeholder="Enter amount" className="input mb-2" min={100} />
-      <div className="text-xs text-gray-500 mb-5">Minimum ₹100 · Maximum ₹1,00,000</div>
+        placeholder="Enter token amount" className="input mb-2" min={100} />
+      <div className="text-xs text-gray-500 mb-5">Minimum 100 · Maximum 1,00,000 tokens</div>
       <button onClick={() => {
-        if (!amount || parseFloat(amount) < 100) { toast.error('Minimum deposit is ₹100'); return }
+        if (!amount || parseFloat(amount) < 100) { toast.error('Minimum is 100 tokens'); return }
         setStep(2)
       }} className="btn-primary w-full">Continue to Payment →</button>
     </div>
@@ -110,11 +115,16 @@ function DepositFlow() {
   // Step 2 — Pay + enter UTR
   if (step === 2) return (
     <div className="space-y-4">
-      {/* Payment details from admin */}
       <div className="card p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white">Pay <span className="text-orange-400">₹{parseFloat(amount).toLocaleString()}</span></h3>
-          <button onClick={() => setStep(1)} className="text-xs text-gray-500 hover:text-white">← Change amount</button>
+          <h3 className="font-semibold text-white">
+            Buy <span className="text-orange-400">🪙 {parseInt(amount).toLocaleString('en-IN')} Tokens</span>
+          </h3>
+          <button onClick={() => setStep(1)} className="text-xs text-gray-500 hover:text-white">← Change</button>
+        </div>
+
+        <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl p-3 mb-4 text-sm text-orange-300">
+          Pay exactly <strong>₹{parseInt(amount).toLocaleString('en-IN')}</strong> via UPI or bank transfer below. You will receive <strong>🪙 {parseInt(amount).toLocaleString('en-IN')} Tokens</strong> after admin verification.
         </div>
 
         {/* QR Code */}
@@ -126,7 +136,7 @@ function DepositFlow() {
           </div>
         ) : (
           <div className="bg-gray-900 border border-dashed border-gray-700 rounded-xl p-8 text-center text-gray-500 text-sm mb-5">
-            QR Code not configured yet — contact admin
+            QR Code not configured — contact admin
           </div>
         )}
 
@@ -186,7 +196,7 @@ function DepositFlow() {
           <label className="text-sm text-gray-400 mb-1 block">UTR / Transaction ID <span className="text-red-400">*</span></label>
           <input type="text" value={utrNumber} onChange={e => setUtrNumber(e.target.value)}
             placeholder="e.g. 425123456789" className="input" />
-          <div className="text-xs text-gray-500 mt-1">Find this in your UPI app → Transaction history → UTR number</div>
+          <div className="text-xs text-gray-500 mt-1">Find in UPI app → Transaction history → UTR number</div>
         </div>
 
         <div className="mb-5">
@@ -200,7 +210,7 @@ function DepositFlow() {
           if (!utrNumber || utrNumber.trim().length < 6) { toast.error('Enter a valid UTR / Transaction ID'); return }
           submitMutation.mutate()
         }} disabled={submitMutation.isPending} className="btn-primary w-full text-base py-3">
-          {submitMutation.isPending ? 'Submitting...' : '✓ Submit for Approval'}
+          {submitMutation.isPending ? 'Submitting...' : '✓ Submit for Verification'}
         </button>
       </div>
     </div>
@@ -213,18 +223,20 @@ function DepositFlow() {
         <CheckCircle className="w-10 h-10 text-green-400" />
       </div>
       <h3 className="font-bold text-white text-xl mb-2">Request Submitted!</h3>
-      <p className="text-gray-400 text-sm mb-1">₹{parseFloat(amount).toLocaleString()} deposit is under review</p>
+      <p className="text-gray-400 text-sm mb-1">
+        🪙 {parseInt(amount).toLocaleString('en-IN')} tokens purchase is under review
+      </p>
       <p className="text-gray-500 text-xs mb-2">UTR: <span className="text-white font-mono">{utrNumber}</span></p>
-      <p className="text-gray-500 text-xs mb-8">Admin will verify and credit your wallet within 30 minutes.</p>
+      <p className="text-gray-500 text-xs mb-8">Admin will verify and credit your tokens within 30 minutes.</p>
       <button onClick={() => { setStep(1); setAmount(''); setUtrNumber(''); setScreenshotUrl('') }}
-        className="btn-secondary w-full">Add More Money</button>
+        className="btn-secondary w-full">Buy More Tokens</button>
     </div>
   )
 }
 
-// ── Withdraw Flow ─────────────────────────────────────────────────────────────
+// ── Redeem Flow ───────────────────────────────────────────────────────────────
 
-function WithdrawFlow({ balance, onSuccess }: { balance: number; onSuccess: () => void }) {
+function RedeemFlow({ balance, onSuccess }: { balance: number; onSuccess: () => void }) {
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState<'upi' | 'bank'>('upi')
   const [upiId, setUpiId] = useState('')
@@ -244,7 +256,7 @@ function WithdrawFlow({ balance, onSuccess }: { balance: number; onSuccess: () =
     }).then(r => r.json()),
     onSuccess: (data) => {
       if (data.error) { toast.error(data.error); return }
-      toast.success('Withdrawal request submitted!')
+      toast.success('Redemption request submitted!')
       setAmount('')
       onSuccess()
     },
@@ -252,24 +264,27 @@ function WithdrawFlow({ balance, onSuccess }: { balance: number; onSuccess: () =
 
   return (
     <div className="card p-5">
-      <h3 className="font-semibold text-white mb-4">Withdraw Funds</h3>
+      <h3 className="font-semibold text-white mb-1">Redeem Tokens</h3>
+      <p className="text-gray-500 text-xs mb-4">Convert tokens to real money · 1 Token = ₹1 · Admin approval required</p>
+
       <div className="mb-4">
-        <label className="text-sm text-gray-400 mb-1 block">Amount (₹)</label>
-        <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Min ₹200" className="input" />
+        <label className="text-sm text-gray-400 mb-1 block">Token Amount</label>
+        <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
+          placeholder="Min 200 tokens" className="input" />
         <div className="flex gap-2 mt-2">
           {[500, 1000, 5000].map(a => (
             <button key={a} onClick={() => setAmount(String(Math.min(a, balance)))}
               className="flex-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 rounded-lg">
-              ₹{a >= 1000 ? `${a / 1000}K` : a}
+              🪙 {a >= 1000 ? `${a / 1000}K` : a}
             </button>
           ))}
           <button onClick={() => setAmount(String(Math.floor(balance)))}
-            className="flex-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 rounded-lg">Max</button>
+            className="flex-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 rounded-lg">All</button>
         </div>
       </div>
 
       <div className="mb-4">
-        <label className="text-sm text-gray-400 mb-2 block">Method</label>
+        <label className="text-sm text-gray-400 mb-2 block">Payout Method</label>
         <div className="grid grid-cols-2 gap-2">
           {(['upi', 'bank'] as const).map(m => (
             <button key={m} onClick={() => setMethod(m)}
@@ -303,12 +318,18 @@ function WithdrawFlow({ balance, onSuccess }: { balance: number; onSuccess: () =
       )}
 
       <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-3 text-xs text-yellow-400/80 mb-4">
-        ⚠️ Balance will be held until admin approves. Rejected requests are refunded automatically.
+        ⚠️ Tokens will be held until admin approves. Rejected requests are automatically refunded.
       </div>
 
-      <div className="text-xs text-gray-500 mb-4">Available: {formatCurrency(balance)}</div>
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-xs text-gray-500">Available: {formatTokens(balance)}</span>
+        {amount && parseFloat(amount) > 0 && (
+          <span className="text-xs text-green-400">You receive: ₹{parseFloat(amount).toLocaleString('en-IN')}</span>
+        )}
+      </div>
+
       <button onClick={() => mutation.mutate()} disabled={mutation.isPending} className="btn-primary w-full py-3">
-        {mutation.isPending ? 'Submitting...' : 'Request Withdrawal'}
+        {mutation.isPending ? 'Submitting...' : 'Request Redemption'}
       </button>
     </div>
   )
@@ -336,12 +357,12 @@ function HistoryTab() {
               {item._type === 'deposit'
                 ? <ArrowDownLeft className="w-4 h-4 text-green-400" />
                 : <ArrowUpRight className="w-4 h-4 text-red-400" />}
-              <span className="text-white font-medium text-sm capitalize">
-                {item._type === 'deposit' ? 'Add Money' : 'Withdrawal'}
+              <span className="text-white font-medium text-sm">
+                {item._type === 'deposit' ? 'Token Purchase' : 'Token Redemption'}
               </span>
             </div>
             <span className={cn('font-bold text-sm', item._type === 'deposit' ? 'text-green-400' : 'text-red-400')}>
-              {item._type === 'deposit' ? '+' : '-'}{formatCurrency(item.amount)}
+              {item._type === 'deposit' ? '+' : '-'}{formatTokens(item.amount)}
             </span>
           </div>
           <div className="flex items-center justify-between">
@@ -351,7 +372,7 @@ function HistoryTab() {
           {item.utrNumber && <div className="text-xs text-gray-600 mt-1.5 font-mono">UTR: {item.utrNumber}</div>}
           {item.adminNote && (
             <div className="text-xs text-yellow-400/80 bg-yellow-500/5 rounded-lg p-2 mt-2">
-              Admin note: {item.adminNote}
+              Note: {item.adminNote}
             </div>
           )}
         </div>

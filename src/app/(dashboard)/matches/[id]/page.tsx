@@ -7,7 +7,7 @@ import { useSearchParams, useParams } from 'next/navigation'
 import { ArrowLeft, TrendingUp, Target, Trophy, Loader2, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import { cn, formatCurrency, getStatusColor } from '@/lib/utils'
+import { cn, formatTokens, getStatusColor } from '@/lib/utils'
 import TopBar from '@/components/layout/TopBar'
 import LiveScoreWidget from '@/components/match/LiveScoreWidget'
 
@@ -152,7 +152,7 @@ export default function MatchDetailPage() {
   function handlePlaceTrade() {
     if (!selectedTrade || !tradeAmount) { toast.error('Select a prediction and amount'); return }
     const amount = parseFloat(tradeAmount)
-    if (isNaN(amount) || amount < 10) { toast.error('Minimum trade amount is ₹10'); return }
+    if (isNaN(amount) || amount < 10) { toast.error('Minimum trade amount is 10 tokens'); return }
     if (amount > (session?.user?.balance || 0)) { toast.error('Insufficient balance'); return }
     tradeMutation.mutate({
       matchId: match.id,
@@ -167,7 +167,7 @@ export default function MatchDetailPage() {
   function handlePlaceBet() {
     if (!selectedBet || !betAmount) { toast.error('Select a bet and enter amount'); return }
     const amount = parseFloat(betAmount)
-    if (isNaN(amount) || amount < 10) { toast.error('Minimum bet amount is ₹10'); return }
+    if (isNaN(amount) || amount < 10) { toast.error('Minimum bet amount is 10 tokens'); return }
     if (amount > (session?.user?.balance || 0)) { toast.error('Insufficient balance'); return }
     betMutation.mutate({
       matchId: match.id,
@@ -325,7 +325,7 @@ export default function MatchDetailPage() {
               )}
 
               <div>
-                <label className="text-xs text-gray-400 mb-2 block font-medium">Trade Amount (₹)</label>
+                <label className="text-xs text-gray-400 mb-2 block font-medium">Trade Amount (Tokens)</label>
                 <input
                   type="number" value={tradeAmount}
                   onChange={e => setTradeAmount(e.target.value)}
@@ -336,7 +336,7 @@ export default function MatchDetailPage() {
                     <button key={amt}
                       onClick={() => setTradeAmount(String(Math.min(amt, balance)))}
                       className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 rounded-lg transition-colors font-medium">
-                      ₹{amt >= 1000 ? `${amt / 1000}K` : amt}
+                      🪙{amt >= 1000 ? `${amt / 1000}K` : amt}
                     </button>
                   ))}
                 </div>
@@ -347,7 +347,7 @@ export default function MatchDetailPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Potential Win</span>
                     <span className="text-green-400 font-bold">
-                      {formatCurrency(parseFloat(tradeAmount) * (
+                      {formatTokens(parseFloat(tradeAmount) * (
                         selectedTrade.id === 'team1_win' ? (liveOdds?.team1 ?? match.team1Odds) :
                         selectedTrade.id === 'team2_win' ? (liveOdds?.team2 ?? match.team2Odds) : 1.9
                       ))}
@@ -356,7 +356,7 @@ export default function MatchDetailPage() {
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Net profit</span>
                     <span className="text-green-400">
-                      +{formatCurrency(parseFloat(tradeAmount) * (
+                      +{formatTokens(parseFloat(tradeAmount) * (
                         selectedTrade.id === 'team1_win' ? (liveOdds?.team1 ?? match.team1Odds) - 1 :
                         selectedTrade.id === 'team2_win' ? (liveOdds?.team2 ?? match.team2Odds) - 1 : 0.9
                       ))}
@@ -366,7 +366,7 @@ export default function MatchDetailPage() {
               )}
 
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-600">Balance: {formatCurrency(balance)}</span>
+                <span className="text-xs text-gray-600">Balance: {formatTokens(balance)}</span>
               </div>
 
               <button
@@ -445,7 +445,7 @@ export default function MatchDetailPage() {
               )}
 
               <div>
-                <label className="text-xs text-gray-400 mb-2 block font-medium">Bet Amount (₹)</label>
+                <label className="text-xs text-gray-400 mb-2 block font-medium">Bet Amount (Tokens)</label>
                 <input
                   type="number" value={betAmount}
                   onChange={e => setBetAmount(e.target.value)}
@@ -456,7 +456,7 @@ export default function MatchDetailPage() {
                     <button key={amt}
                       onClick={() => setBetAmount(String(Math.min(amt, balance)))}
                       className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 rounded-lg transition-colors font-medium">
-                      ₹{amt}
+                      🪙{amt}
                     </button>
                   ))}
                 </div>
@@ -467,18 +467,18 @@ export default function MatchDetailPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Potential Win</span>
                     <span className="text-green-400 font-bold">
-                      {formatCurrency(parseFloat(betAmount) * selectedBet.odds)}
+                      {formatTokens(parseFloat(betAmount) * selectedBet.odds)}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs mt-1">
                     <span className="text-gray-500">Net profit</span>
-                    <span className="text-green-400">+{formatCurrency(parseFloat(betAmount) * (selectedBet.odds - 1))}</span>
+                    <span className="text-green-400">+{formatTokens(parseFloat(betAmount) * (selectedBet.odds - 1))}</span>
                   </div>
                 </div>
               )}
 
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-600">Balance: {formatCurrency(balance)}</span>
+                <span className="text-xs text-gray-600">Balance: {formatTokens(balance)}</span>
               </div>
 
               <button
@@ -503,7 +503,7 @@ export default function MatchDetailPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-gray-400 mb-2 block font-medium">Bet Amount (₹)</label>
+                  <label className="text-xs text-gray-400 mb-2 block font-medium">Bet Amount (Tokens)</label>
                   <input
                     type="number" value={betAmount}
                     onChange={e => setBetAmount(e.target.value)}
@@ -514,7 +514,7 @@ export default function MatchDetailPage() {
                       <button key={amt}
                         onClick={() => setBetAmount(String(Math.min(amt, balance)))}
                         className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 rounded-lg transition-colors font-medium">
-                        ₹{amt}
+                        🪙{amt}
                       </button>
                     ))}
                   </div>
@@ -525,18 +525,18 @@ export default function MatchDetailPage() {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-400">Potential Win</span>
                       <span className="text-green-400 font-bold">
-                        {formatCurrency(parseFloat(betAmount) * selectedBet.odds)}
+                        {formatTokens(parseFloat(betAmount) * selectedBet.odds)}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs mt-1">
                       <span className="text-gray-500">Net profit</span>
-                      <span className="text-green-400">+{formatCurrency(parseFloat(betAmount) * (selectedBet.odds - 1))}</span>
+                      <span className="text-green-400">+{formatTokens(parseFloat(betAmount) * (selectedBet.odds - 1))}</span>
                     </div>
                   </div>
                 )}
 
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600">Balance: {formatCurrency(balance)}</span>
+                  <span className="text-xs text-gray-600">Balance: {formatTokens(balance)}</span>
                 </div>
 
                 <button
@@ -590,14 +590,14 @@ function ContestCard({ contest }: { contest: any }) {
           <p className="text-gray-500 text-xs mt-0.5">{contest.contestType}</p>
         </div>
         <div className="text-right shrink-0">
-          <div className="font-bold text-white">{contest.entryFee === 0 ? 'Free' : `₹${contest.entryFee}`}</div>
+          <div className="font-bold text-white">{contest.entryFee === 0 ? 'Free' : `🪙 ${contest.entryFee}`}</div>
           <div className="text-gray-500 text-xs">Entry</div>
         </div>
       </div>
 
       <div className="flex items-center justify-between mb-3">
         <div>
-          <div className="font-bold text-lg text-gradient-gold">₹{(contest.totalPrizePool / 100000).toFixed(1)}L</div>
+          <div className="font-bold text-lg text-gradient-gold">🪙 {(contest.totalPrizePool / 100000).toFixed(1)}L</div>
           <div className="text-gray-500 text-xs">Prize Pool</div>
         </div>
         <div className="text-right">

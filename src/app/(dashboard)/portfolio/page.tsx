@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import TopBar from '@/components/layout/TopBar'
 import { TrendingUp, TrendingDown, Target, Trophy, Loader2 } from 'lucide-react'
-import { cn, formatCurrency, formatDateTime, getStatusColor } from '@/lib/utils'
+import { cn, formatTokens, formatDateTime, getStatusColor } from '@/lib/utils'
 
 export default function PortfolioPage() {
   const [activeTab, setActiveTab] = useState<'trades' | 'bets' | 'contests'>('trades')
@@ -43,7 +43,7 @@ export default function PortfolioPage() {
           </div>
           <div className="stat-card">
             <div className="text-gray-400 text-xs">Total Invested</div>
-            <div className="font-bold text-xl text-white">{formatCurrency(tradeStats.totalInvested)}</div>
+            <div className="font-bold text-xl text-white">{formatTokens(tradeStats.totalInvested)}</div>
           </div>
           <div className="stat-card">
             <div className="text-gray-400 text-xs">Won</div>
@@ -108,7 +108,7 @@ export default function PortfolioPage() {
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
                         <div className="text-gray-500 text-xs">Invested</div>
-                        <div className="text-white font-medium">{formatCurrency(trade.amount)}</div>
+                        <div className="text-white font-medium">{formatTokens(trade.amount)}</div>
                       </div>
                       <div>
                         <div className="text-gray-500 text-xs">Odds</div>
@@ -123,7 +123,7 @@ export default function PortfolioPage() {
                           trade.status === 'lost' ? 'text-red-400' : 'text-yellow-400'
                         )}>
                           {trade.status === 'won' ? '+' : trade.status === 'lost' ? '-' : ''}
-                          {formatCurrency(trade.status === 'won' ? trade.potentialWin :
+                          {formatTokens(trade.status === 'won' ? trade.potentialWin :
                            trade.status === 'lost' ? trade.amount : trade.potentialWin)}
                         </div>
                       </div>
@@ -166,7 +166,7 @@ export default function PortfolioPage() {
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
                         <div className="text-gray-500 text-xs">Staked</div>
-                        <div className="text-white">{formatCurrency(bet.amount)}</div>
+                        <div className="text-white">{formatTokens(bet.amount)}</div>
                       </div>
                       <div>
                         <div className="text-gray-500 text-xs">Odds</div>
@@ -178,7 +178,7 @@ export default function PortfolioPage() {
                           bet.status === 'won' ? 'text-green-400' :
                           bet.status === 'lost' ? 'text-red-400' : 'text-yellow-400'
                         )}>
-                          {formatCurrency(bet.potentialWin)}
+                          {formatTokens(bet.potentialWin)}
                         </div>
                       </div>
                     </div>

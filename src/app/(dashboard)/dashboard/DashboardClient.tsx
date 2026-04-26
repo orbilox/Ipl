@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { TrendingUp, TrendingDown, Wallet, Trophy, Target, Zap, Clock, ChevronRight, Plus } from 'lucide-react'
-import { formatCurrency, formatDateTime, getMatchTimeStatus, getStatusColor, cn, timeAgo } from '@/lib/utils'
+import { formatTokens, formatDateTime, getMatchTimeStatus, getStatusColor, cn, timeAgo } from '@/lib/utils'
 
 interface Props {
   user: any
@@ -40,12 +40,12 @@ export default function DashboardClient({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="stat-card">
           <div className="flex items-center justify-between">
-            <span className="text-gray-400 text-xs">Wallet Balance</span>
+            <span className="text-gray-400 text-xs">Token Balance</span>
             <Wallet className="w-4 h-4 text-orange-400" />
           </div>
-          <div className="font-display font-bold text-xl text-white">{formatCurrency(user?.balance || 0)}</div>
+          <div className="font-display font-bold text-xl text-white">{formatTokens(user?.balance || 0)}</div>
           <Link href="/wallet" className="text-orange-400 text-xs flex items-center gap-1 mt-1">
-            <Plus className="w-3 h-3" /> Add Money
+            <Plus className="w-3 h-3" /> Buy Tokens
           </Link>
         </div>
 
@@ -57,7 +57,7 @@ export default function DashboardClient({
               : <TrendingDown className="w-4 h-4 text-red-400" />}
           </div>
           <div className={cn('font-display font-bold text-xl', netPnl >= 0 ? 'text-green-400' : 'text-red-400')}>
-            {netPnl >= 0 ? '+' : ''}{formatCurrency(netPnl)}
+            {netPnl >= 0 ? '+' : ''}{formatTokens(netPnl)}
           </div>
           <div className="text-gray-500 text-xs">All time earnings</div>
         </div>
@@ -152,7 +152,7 @@ export default function DashboardClient({
             <h3 className="font-semibold text-white mb-4">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: 'Add Money', href: '/wallet', icon: Wallet, color: 'text-green-400 bg-green-400/10' },
+                { label: 'Buy Tokens', href: '/wallet', icon: Wallet, color: 'text-green-400 bg-green-400/10' },
                 { label: 'Trade Now', href: '/matches', icon: TrendingUp, color: 'text-orange-400 bg-orange-400/10' },
                 { label: 'Contests', href: '/contests', icon: Trophy, color: 'text-yellow-400 bg-yellow-400/10' },
                 { label: 'Portfolio', href: '/portfolio', icon: Target, color: 'text-blue-400 bg-blue-400/10' },
@@ -191,7 +191,7 @@ export default function DashboardClient({
                         item.status === 'won' ? 'text-green-400' :
                         item.status === 'lost' ? 'text-red-400' : 'text-yellow-400'
                       )}>
-                        {item.status === 'won' ? '+' : ''}{formatCurrency(item.status === 'won' ? item.potentialWin : -item.amount)}
+                        {item.status === 'won' ? '+' : ''}{formatTokens(item.status === 'won' ? item.potentialWin : -item.amount)}
                       </div>
                       <div className={cn('badge text-[10px]', getStatusColor(item.status))}>
                         {item.status}

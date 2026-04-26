@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import TopBar from '@/components/layout/TopBar'
 import Link from 'next/link'
 import { Trophy, Users, Clock, Star, Zap } from 'lucide-react'
-import { cn, formatCurrency, getMatchTimeStatus } from '@/lib/utils'
+import { cn, getMatchTimeStatus } from '@/lib/utils'
 
 const CONTEST_TYPES = [
   { value: '', label: 'All' },
@@ -107,15 +107,15 @@ function ContestCard({ contest }: { contest: any }) {
           <h3 className="font-bold text-white text-lg">{contest.name}</h3>
           <div className="font-display font-black text-2xl text-gradient-gold mt-1">
             {contest.totalPrizePool >= 100000
-              ? `₹${(contest.totalPrizePool/100000).toFixed(1)}L`
-              : `₹${contest.totalPrizePool.toLocaleString()}`}
+              ? `🪙 ${(contest.totalPrizePool/100000).toFixed(1)}L`
+              : `🪙 ${contest.totalPrizePool.toLocaleString()}`}
           </div>
           <div className="text-gray-400 text-xs">Prize Pool</div>
         </div>
 
         <div className="text-right">
           <div className="font-bold text-2xl text-white">
-            {contest.entryFee === 0 ? 'FREE' : `₹${contest.entryFee}`}
+            {contest.entryFee === 0 ? 'FREE' : `🪙 ${contest.entryFee}`}
           </div>
           <div className="text-gray-400 text-xs">Entry Fee</div>
         </div>
@@ -128,7 +128,7 @@ function ContestCard({ contest }: { contest: any }) {
             <div key={i} className="flex-shrink-0 text-center bg-gray-900/50 rounded-lg px-3 py-2">
               <div className="text-lg">{i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</div>
               <div className="text-white text-xs font-medium">#{p.rank}</div>
-              <div className="text-yellow-400 text-xs">₹{p.prize.toLocaleString()}</div>
+              <div className="text-yellow-400 text-xs">🪙 {p.prize.toLocaleString()}</div>
             </div>
           ))}
         </div>

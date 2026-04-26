@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { ArrowLeft, Users, Trophy, Star, Loader2, CheckCircle, Crown } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import { cn, formatCurrency, getMatchTimeStatus } from '@/lib/utils'
+import { cn, formatTokens, getMatchTimeStatus } from '@/lib/utils'
 
 const TOTAL_CREDITS = 100
 const MIN_PLAYERS = 11
@@ -115,7 +115,7 @@ export default function ContestDetailClient({ contest, players, userEntry, prize
           </div>
           <div className="text-right">
             <div className="font-bold text-2xl text-white">
-              {contest.entryFee === 0 ? 'FREE' : `₹${contest.entryFee}`}
+              {contest.entryFee === 0 ? 'FREE' : `🪙 ${contest.entryFee}`}
             </div>
             <div className="text-gray-400 text-xs">Entry</div>
           </div>
@@ -125,8 +125,8 @@ export default function ContestDetailClient({ contest, players, userEntry, prize
           <div className="text-center">
             <div className="font-bold text-xl text-gradient-gold">
               {contest.totalPrizePool >= 100000
-                ? `₹${(contest.totalPrizePool/100000).toFixed(1)}L`
-                : `₹${contest.totalPrizePool.toLocaleString()}`}
+                ? `🪙 ${(contest.totalPrizePool/100000).toFixed(1)}L`
+                : `🪙 ${contest.totalPrizePool.toLocaleString()}`}
             </div>
             <div className="text-gray-400 text-xs">Prize Pool</div>
           </div>
@@ -149,7 +149,7 @@ export default function ContestDetailClient({ contest, players, userEntry, prize
             {prizeBreakdown.map((p: any) => (
               <div key={p.rank} className="flex-shrink-0 bg-gray-900/50 rounded-lg px-3 py-2 text-center">
                 <div className="text-white text-xs">#{p.rank}</div>
-                <div className="text-yellow-400 text-xs font-bold">₹{p.prize.toLocaleString()}</div>
+                <div className="text-yellow-400 text-xs font-bold">🪙 {p.prize.toLocaleString()}</div>
               </div>
             ))}
           </div>
@@ -304,7 +304,7 @@ export default function ContestDetailClient({ contest, players, userEntry, prize
                 className="btn-primary w-full py-3 text-base flex items-center justify-center gap-2"
               >
                 {joinMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trophy className="w-5 h-5" />}
-                {joinMutation.isPending ? 'Joining...' : `Join for ${contest.entryFee === 0 ? 'Free' : formatCurrency(contest.entryFee)}`}
+                {joinMutation.isPending ? 'Joining...' : `Join for ${contest.entryFee === 0 ? 'Free' : formatTokens(contest.entryFee)}`}
               </button>
             </div>
           )}
